@@ -10,6 +10,6 @@ typedef struct fasta_t
 	} Fasta,*FastaPtr;
 
 FastaPtr fasta_read(FILE* in);
-void fasta_free(FastaPtr* seq);
+void fasta_free(FastaPtr seq);
 
 #endif
