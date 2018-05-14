@@ -4348,6 +4348,17 @@ static pointer opexe_6(scheme *sc, enum scheme_opcodes op) {
           s_retbool(is_macro(car(sc->args)));
      case OP_RAND:
      	   s_return(sc,mk_real(sc, rand()/(double)RAND_MAX) );
+     case OP_FASTA_LEN:
+     	   x=car(sc->args);
+           if(!is_fasta(x)) {
+	           fprintf(stderr,"not a fasta sequence\n");
+           	   s_return(sc,sc->F);
+           	}
+           else
+           	{
+           	FastaPtr fasta = fastavalue(x);
+           	s_return(sc,mk_integer(sc,(long)strlen(fasta->seq)) );
+           	}
      default:
           snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
           Error_0(sc,sc->strbuff);
