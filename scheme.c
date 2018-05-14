@@ -30,6 +30,7 @@
 #include <limits.h>
 #include <float.h>
 #include <ctype.h>
+#include <assert.h>
 
 #if USE_STRCASECMP
 #include <strings.h>
@@ -257,12 +258,7 @@ INTERFACE INLINE void setimmutable(pointer p) { typeflag(p) |= T_IMMUTABLE; }
 	INTERFACE INLINE int is_fasta(pointer p)     { return (type(p)==T_FASTA);}
 	#define fastavalue(p)      ((p)->_object.fasta)
 
-	pointer mk_fasta(scheme *sc,FastaPtr ptr) {
-		pointer x;
-		typeflag(x) = T_FASTA|T_ATOM;
-		fastavalue(x) = ptr;
-		return x;
-		}
+	
 
 #endif /* end of ifdef FASTA */
 
@@ -5070,6 +5066,42 @@ int main(int argc, char **argv) {
 }
 
 #endif
+
+#ifdef FASTA_H
+
+#define tinyscheme_list3(sc , a , b , c) cons((sc) , (a) , cons((sc) , (b) , cons((sc) , (c) , (sc)->NIL)))
+#define tinyscheme_list2(sc , a , b ) cons((sc) , (a) , cons((sc) , (b) , (sc)->NIL))
+
+
+pointer mk_fasta(scheme *sc,FastaPtr ptr) {
+		pointer x = get_cell(sc, sc->NIL, sc->NIL);
+		typeflag(x) = T_FASTA|T_ATOM;
+		fastavalue(x) = ptr;
+		return x;
+		}
+
+void fasta_filter(scheme* sc,FILE* in) {
+pointer p_fasta ;
+pointer p_return ;
+
+
+
+pointer filter_symbol = mk_symbol(sc,"accept-fasta");
+for(;;) {
+     FastaPtr seq = fasta_read(in);
+     if(seq==NULL) break;
+     p_fasta = mk_fasta(sc,seq);
+     assert(p_fasta!=0);
+     p_return =  scheme_eval(sc, tinyscheme_list2(sc,filter_symbol,p_fasta) ); 
+     if(is_true(p_return)) {
+	     printf("%s %d\n",seq->name,(int)strlen(seq->seq));
+	     }
+     fasta_free(seq);
+    }
+}
+
+#endif
+
 
 /*
 Local variables:
