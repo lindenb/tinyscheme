@@ -1,1 +1,1 @@
-(define (accept-fasta fasta) #f )
+(define (accept-fasta fasta) (<= (rand) 0.5 ) )

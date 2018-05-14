@@ -31,6 +31,7 @@
 #include <float.h>
 #include <ctype.h>
 #include <assert.h>
+#include <time.h>
 
 #if USE_STRCASECMP
 #include <strings.h>
@@ -4345,6 +4346,8 @@ static pointer opexe_6(scheme *sc, enum scheme_opcodes op) {
           s_retbool(is_closure(car(sc->args)));
      case OP_MACROP:          /* macro? */
           s_retbool(is_macro(car(sc->args)));
+     case OP_RAND:
+     	   s_return(sc,mk_real(sc, rand()/(double)RAND_MAX) );
      default:
           snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
           Error_0(sc,sc->strbuff);
@@ -4660,7 +4663,9 @@ int scheme_init(scheme *sc) {
 int scheme_init_custom_alloc(scheme *sc, func_alloc malloc, func_dealloc free) {
   int i, n=sizeof(dispatch_table)/sizeof(dispatch_table[0]);
   pointer x;
-
+  
+  srand(time(NULL));
+  
   num_zero.is_fixnum=1;
   num_zero.value.ivalue=0;
   num_one.is_fixnum=1;

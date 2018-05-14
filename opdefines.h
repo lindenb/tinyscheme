@@ -192,4 +192,5 @@
     _OP_DEF(opexe_6, "get-closure-code",               1,  1,       TST_NONE,                        OP_GET_CLOSURE      )
     _OP_DEF(opexe_6, "closure?",                       1,  1,       TST_NONE,                        OP_CLOSUREP         )
     _OP_DEF(opexe_6, "macro?",                         1,  1,       TST_NONE,                        OP_MACROP           )
+    _OP_DEF(opexe_6, "rand",                           0,  0,       TST_NUMBER,                      OP_RAND             )
 #undef _OP_DEF
