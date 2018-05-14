@@ -123,7 +123,8 @@ enum scheme_types {
   T_MACRO=12,
   T_PROMISE=13,
   T_ENVIRONMENT=14,
-  T_LAST_SYSTEM_TYPE=14
+  T_FASTA=15,
+  T_LAST_SYSTEM_TYPE=15
 };
 
 /* ADJ is enough slack to align cells in a TYPE_BITS-bit boundary */
@@ -250,6 +251,20 @@ INTERFACE INLINE int is_environment(pointer p) { return (type(p)==T_ENVIRONMENT)
 INTERFACE INLINE int is_immutable(pointer p) { return (typeflag(p)&T_IMMUTABLE); }
 /*#define setimmutable(p)  typeflag(p) |= T_IMMUTABLE*/
 INTERFACE INLINE void setimmutable(pointer p) { typeflag(p) |= T_IMMUTABLE; }
+
+#ifdef FASTA_H
+
+	INTERFACE INLINE int is_fasta(pointer p)     { return (type(p)==T_FASTA);}
+	#define fastavalue(p)      ((p)->_object.fasta)
+
+	pointer mk_fasta(scheme *sc,FastaPtr ptr) {
+		pointer x;
+		typeflag(x) = T_FASTA|T_ATOM;
+		fastavalue(x) = ptr;
+		return x;
+		}
+
+#endif /* end of ifdef FASTA */
 
 #define caar(p)          car(car(p))
 #define cadr(p)          car(cdr(p))
@@ -1318,7 +1333,13 @@ static void gc(scheme *sc, pointer a, pointer b) {
 static void finalize_cell(scheme *sc, pointer a) {
   if(is_string(a)) {
     sc->free(strvalue(a));
-  } else if(is_port(a)) {
+  } 
+#ifdef FASTA_H  
+  else if(is_fasta(a)) {
+  	/* fasta_free(fastavalue(a)); NON, handled by the filter_fasta loop */
+  }
+#endif
+  else if(is_port(a)) {
     if(a->_object._port->kind&port_file
        && a->_object._port->rep.stdio.closeit) {
       port_close(sc,a,port_input|port_output);
@@ -2020,7 +2041,13 @@ static void atom2str(scheme *sc, pointer l, int f, char **pp, int *plen) {
           snprintf(p,STRBUFFSIZE,"#<FOREIGN PROCEDURE %ld>", procnum(l));
      } else if (is_continuation(l)) {
           p = "#<CONTINUATION>";
-     } else {
+     } 
+#ifdef FASTA_H    
+    else if (is_fasta(l)) {
+          p = "#<FASTA>";
+     }
+#endif
+     else {
           p = "#<ERROR>";
      }
      *pp=p;

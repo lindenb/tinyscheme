@@ -4,6 +4,7 @@
 #define _SCHEME_PRIVATE_H
 
 #include "scheme.h"
+#include "fasta.h"
 /*------------------ Ugly internals -----------------------------------*/
 /*------------------ Of interest only to FFI users --------------------*/
 
@@ -48,6 +49,9 @@ struct cell {
       char   *_svalue;
       int   _length;
     } _string;
+    #ifdef FASTA_H
+    	FastaPtr fasta;
+    #endif
     num _number;
     port *_port;
     foreign_func _ff;

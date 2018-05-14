@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "scheme-private.h"
 #include "fasta.h"
+
+extern pointer mk_fasta(scheme *sc,FastaPtr ptr);
 
 static char* str_append(char* s,char c,size_t* buff,size_t* size) {
 	if(*size+2 >= *buff) {
@@ -54,10 +57,14 @@ void fasta_free(FastaPtr seq) {
 	free(seq);
 	}
 
-static void fasta_filter(FILE* in) {
+
+
+static void fasta_filter(scheme* sc,FILE* in) {
+pointer p ;
 for(;;) {
      FastaPtr seq = fasta_read(in);
      if(seq==NULL) break;
+     p = mk_fasta(sc,seq);
      printf("%s %d\n",seq->name,(int)strlen(seq->seq));
 	 fasta_free(seq);
 	}
@@ -65,8 +72,17 @@ for(;;) {
 }
 
 int main(int argc,char** argv) {
+	scheme sc;
+	int retcode = 0;
+	if(!scheme_init(&sc)) {
+    fprintf(stderr,"Could not initialize!\n");
+    return 2;
+  	}
+  	scheme_set_input_port_file(&sc, stdin);
+  	scheme_set_output_port_file(&sc, stdout);
+  	
 	if(argc==1) {
-		fasta_filter(stdin);
+		fasta_filter(&sc,stdin);
 		}
 	else {
 		int i;
@@ -76,10 +92,12 @@ int main(int argc,char** argv) {
 				fprintf(stderr,"cannot open %s.\n",argv[i]);
 				return -1;
 				}
-			fasta_filter(in);
+			fasta_filter(&sc,in);
 			fclose(in);
 			}
 		}
-	return 0;
+	retcode=sc.retcode;
+  	scheme_deinit(&sc);
+	return retcode;
 	}
 
