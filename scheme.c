@@ -4324,21 +4324,6 @@ static pointer opexe_6(scheme *sc, enum scheme_opcodes op) {
           s_retbool(is_closure(car(sc->args)));
      case OP_MACROP:          /* macro? */
           s_retbool(is_macro(car(sc->args)));
-     case OP_RAND:
-     	  s_return(sc,mk_real(sc, rand()/(double)RAND_MAX) );
-     case OP_TOUPPER:
-     case OP_TOLOWER:
-     	 {
-     	 int (*tr)(int)  = (sc->op == OP_TOUPPER?toupper:tolower);
-     	 size_t i=0UL,len = strlength(car(x));
-     	 pointer newstr = mk_empty_string(sc, len, ' ');
-     	 while(i<len) {
-     	 	strvalue(newstr)[i] = tr(strvalue(car(x))[i]);
-     	 	++i;
-     	 	}
-     	 s_return(sc, newstr);
-     	 break;
-     	 }
      default:
           snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
           Error_0(sc,sc->strbuff);
@@ -4346,6 +4331,61 @@ static pointer opexe_6(scheme *sc, enum scheme_opcodes op) {
      return sc->T; /* NOTREACHED */
 }
 
+#if TINYSCHEME_EXTENDED
+
+static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
+	switch (op) {
+     case OP_RAND: {
+     	  s_return(sc,mk_real(sc, rand()/(double)RAND_MAX) );
+     	  break;
+     	  }
+     case OP_TOUPPER:/* through */
+     case OP_TOLOWER:
+     	 {
+     	 pointer x = car(sc->args);
+     	 int (*tr)(int)  = (op == OP_TOUPPER?toupper:tolower);
+     	 size_t i=0UL,len = strlength(x);
+     	 pointer newstr = mk_empty_string(sc, len, ' ');
+     	 while(i<len) {
+     	 	strvalue(newstr)[i] = tr(strvalue(x)[i]);
+     	 	++i;
+     	 	}
+     	 s_return(sc, newstr);
+     	 break;
+     	 }
+    case OP_TRIM:
+     	 {
+     	 int side = 0;
+     	 pointer x = car(sc->args);
+     	 pointer newstr;
+     	 char* cp = strdup(strvalue(x));
+     	 char* start = cp;
+     	 size_t len;
+     	 while(*start!=0 && isspace(*start)) {
+     	    ++start;
+     	  	}
+     	 len = strlen(start);
+     	 while(len>0 && isspace(cp[len-1]))
+     	 	{
+     	 	cp[len-1]=0;
+     	 	len--;
+     	 	}
+		 newstr = mk_string(sc,start);
+		 free(cp);
+     	 s_return(sc, newstr);
+     	 break;
+     	 }
+	default: {
+          snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal extended operator", sc->op);
+          Error_0(sc,sc->strbuff);
+          break;
+          }
+     	}
+    }
+
+#endif
+    
+    
 typedef pointer (*dispatch_func)(scheme *, enum scheme_opcodes);
 
 typedef int (*test_predicate)(pointer);
@@ -4406,6 +4446,12 @@ typedef struct {
 static op_code_info dispatch_table[]= {
 #define _OP_DEF(A,B,C,D,E,OP) {A,B,C,D,E},
 #include "opdefines.h"
+#if TINYSCHEME_EXTENDED
+#include "opdefines-extended.h"
+#else
+#error xxxx
+#endif
+#undef _OP_DEF
   { 0 }
 };
 

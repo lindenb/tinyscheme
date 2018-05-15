@@ -34,7 +34,7 @@ LD = gcc
 LDFLAGS = -shared
 DEBUG=-g -Wno-char-subscripts -O
 SYS_LIBS= -ldl -lm
-PLATFORM_FEATURES= 
+PLATFORM_CFLAGS= 
 
 # Cygwin
 #PLATFORM_FEATURES = -DUSE_STRLWR=0
@@ -62,7 +62,7 @@ PLATFORM_FEATURES=
 #OUT = -o $@
 
 
-CFLAGS = $(PLATFORM_FEATURES) -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0
+CFLAGS = $(PLATFORM_CFLAGS) -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0 -DTINYSCHEME_EXTENDED=1
 APPNAME=scheme
 
 OBJS = $(addsuffix .$(Osuf),$(APPNAME) dynload)
@@ -70,12 +70,20 @@ OBJS = $(addsuffix .$(Osuf),$(APPNAME) dynload)
 LIBTARGET = $(addsuffix .$(SOsuf),$(LIBPREFIX)tiny$(APPNAME))
 STATICLIBTARGET = $(addsuffix .$(LIBsuf),$(LIBPREFIX)tiny$(APPNAME))
 
-.PHONY: all clean test
+.PHONY: all clean test test-extended
 
 all: test $(LIBTARGET) $(STATICLIBTARGET)
 
-test :$(addsuffix $(EXE_EXT),$(APPNAME))  
+test : test-extended
+
+test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))  
+	echo '(display "AAA\n")' | ./$(APPNAME)  | grep AAA
+	echo '(display (string-append "\n" (number->string (rand)) "\n") )' | ./$(APPNAME)  | awk '($$1>=0.0 && $$1<=1.0)' | grep -F '.'
+	echo '(display (tolower "ABC\n"))' | ./$(APPNAME)  | grep abc
+	echo '(display (toupper "abc\n"))' | ./$(APPNAME)  | grep ABC
+	echo '(display "  \n  A B C     \n")' | ./$(APPNAME)  | grep "A B C"
 	
+
 
 %.$(Osuf): %.c
 	$(CC) -I. -c $(CFLAGS) $(DEBUG) $(CFLAGS) $(DL_FLAGS) $<

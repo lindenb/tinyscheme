@@ -149,6 +149,10 @@ int dump_size;      /* number of frames allocated for dump stack */
 enum scheme_opcodes {
 #define _OP_DEF(A,B,C,D,E,OP) OP,
 #include "opdefines.h"
+#if TINYSCHEME_EXTENDED
+#include "opdefines-extended.h"
+#endif
+#undef _OP_DEF
   OP_MAXDEFINED
 };
 
