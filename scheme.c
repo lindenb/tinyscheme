@@ -27,9 +27,13 @@
 # include <math.h>
 #endif
 
+#include <unistd.h>
+#include <getopt.h>
 #include <limits.h>
 #include <float.h>
 #include <ctype.h>
+#include <htslib/synced_bcf_reader.h>
+#include <htslib/vcfutils.h>
 
 #if USE_STRCASECMP
 #include <strings.h>
@@ -5041,6 +5045,103 @@ int main(int argc, char **argv) {
 
   return retcode;
 }
+
+#endif
+
+
+#ifdef HTSLIB_HTS_H
+
+typedef struct _args_t
+{
+    char *filter_str;
+    int filter_logic;   // one of FLT_INCLUDE/FLT_EXCLUDE (-i or -e)
+bcf_srs_t *files;
+    bcf_hdr_t *hdr, *hnull, *hsub; // original header, sites-only header, subset header
+    char **argv, *format, *sample_names, *subset_fname, *targets_list, *regions_list;
+    int argc, clevel, n_threads, output_type, print_header, update_info, header_only, n_samples, *imap, calc_ac;
+    int trim_alts, sites_only, known, novel, min_alleles, max_alleles, private_vars, uncalled, phased;
+    int min_ac, min_ac_type, max_ac, max_ac_type, min_af_type, max_af_type, gt_type;
+    int *ac, mac;
+    float min_af, max_af;
+    char *fn_ref, *fn_out, **samples;
+    int sample_is_file, force_samples;
+    char *include_types, *exclude_types;
+    int include, exclude;
+    htsFile *out;
+}
+args_t;
+
+static void init_data(args_t* args) {
+
+}
+
+static void destroy_data(args_t* args) {
+
+}
+
+static void usage(args_t* args) {
+
+}
+
+int main(int argc,char** argv) {
+ int retcode = EXIT_SUCCESS;
+ int c;
+ args_t* args;
+ static struct option loptions[] =
+    {
+        {"script-file",no_argument,NULL,'f'},
+        {NULL,0,NULL,0}
+    };
+    
+    char *script_file = NULL;
+    while ((c = getopt_long(argc, argv, "f:",loptions,NULL)) >= 0)
+    	{
+        switch (c)
+		{
+		    case 'f': script_file = optarg; break;
+		    case '?': usage(args);
+		    default: fprintf(stderr,"Unknown argument: %s\n", optarg);
+		}
+	    }
+
+    
+    char *fname = NULL;
+    if ( optind>=argc )
+    {
+        if ( !isatty(fileno((FILE *)stdin)) ) fname = "-";  // reading from stdin
+        else usage(args);
+    }
+    else fname = argv[optind];
+
+    // read in the regions from the command line
+  
+    init_data(args);
+    bcf_hdr_t *out_hdr = args->hnull ? args->hnull : (args->hsub ? args->hsub : args->hdr);
+    if (args->print_header)
+        bcf_hdr_write(args->out, out_hdr);
+    else if ( args->output_type & FT_BCF )
+    	{
+        fprintf(stderr,"BCF output requires header, cannot proceed with -H\n");
+        }
+    if (!args->header_only)
+    {
+        while ( bcf_sr_next_line(args->files) )
+        {
+            bcf1_t *line = args->files->readers[0].buffer[0];
+            if ( line->errcode && out_hdr!=args->hdr ) {
+            	fprintf(stderr,"Undefined tags in the header, cannot proceed in the sample subset mode.\n");
+            	}
+            bcf_write1(args->out, out_hdr, line);
+        }
+    }
+    hts_close(args->out);
+    destroy_data(args);
+    bcf_sr_destroy(args->files);
+    free(args);
+
+ return retcode;
+}
+
 
 #endif
 

@@ -3,7 +3,8 @@
 #ifndef _SCHEME_H
 #define _SCHEME_H
 
-#include <stdio.h>
+#include <htslib/vcf.h>
+
 
 #ifdef __cplusplus
 extern "C" {

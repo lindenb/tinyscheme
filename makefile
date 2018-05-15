@@ -31,9 +31,9 @@ AR= ar crs
 
 # Linux
 LD = gcc
-LDFLAGS = -shared
+LDFLAGS = -shared -L$(HTSLIB)
 DEBUG=-g -Wno-char-subscripts -O
-SYS_LIBS= -ldl -lm
+SYS_LIBS= -ldl -lm -lhts
 PLATFORM_FEATURES= -DSUN_DL=1
 
 # Cygwin
@@ -61,7 +61,9 @@ PLATFORM_FEATURES= -DSUN_DL=1
 #LIBPREFIX = lib
 #OUT = -o $@
 
-FEATURES = $(PLATFORM_FEATURES) -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0
+HTSLIB?=../htslib
+
+FEATURES = $(PLATFORM_FEATURES) -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0 -DSTANDALONE=0 -I $(HTSLIB)
 
 OBJS = scheme.$(Osuf) dynload.$(Osuf)
 
@@ -77,7 +79,7 @@ $(LIBTARGET): $(OBJS)
 	$(LD) $(LDFLAGS) $(OUT) $(OBJS) $(SYS_LIBS)
 
 scheme$(EXE_EXT): $(OBJS)
-	$(CC) -o $@ $(DEBUG) $(OBJS) $(SYS_LIBS)
+	$(CC) -o $@ $(DEBUG) -L$(HTSLIB) $(OBJS) $(SYS_LIBS)
 
 $(STATICLIBTARGET): $(OBJS)
 	$(AR) $@ $(OBJS)
