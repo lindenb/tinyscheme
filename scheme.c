@@ -32,6 +32,7 @@
 #include <limits.h>
 #include <float.h>
 #include <ctype.h>
+#include <errno.h>
 #include <htslib/synced_bcf_reader.h>
 #include <htslib/vcfutils.h>
 
@@ -5053,87 +5054,134 @@ int main(int argc, char **argv) {
 
 typedef struct _args_t
 {
-    char *filter_str;
-    int filter_logic;   // one of FLT_INCLUDE/FLT_EXCLUDE (-i or -e)
-bcf_srs_t *files;
-    bcf_hdr_t *hdr, *hnull, *hsub; // original header, sites-only header, subset header
-    char **argv, *format, *sample_names, *subset_fname, *targets_list, *regions_list;
-    int argc, clevel, n_threads, output_type, print_header, update_info, header_only, n_samples, *imap, calc_ac;
-    int trim_alts, sites_only, known, novel, min_alleles, max_alleles, private_vars, uncalled, phased;
-    int min_ac, min_ac_type, max_ac, max_ac_type, min_af_type, max_af_type, gt_type;
-    int *ac, mac;
-    float min_af, max_af;
-    char *fn_ref, *fn_out, **samples;
-    int sample_is_file, force_samples;
-    char *include_types, *exclude_types;
-    int include, exclude;
-    htsFile *out;
-}
-args_t;
+    bcf_srs_t *files;
+    bcf_hdr_t *hdr; // original header
+    int output_type;
+    char *fn_out;
+    htsFile *out;   
+    char *script_file ;
+} args_t;
 
 static void init_data(args_t* args) {
-
-}
+ char modew[8];
+ args->hdr = args->files->readers[0].header;
+ 
+ strcpy(modew, "w");
+    if (args->output_type==FT_BCF) strcat(modew, "bu");         // uncompressed BCF
+    else if (args->output_type & FT_BCF) strcat(modew, "b");    // compressed BCF
+    else if (args->output_type & FT_GZ) strcat(modew,"z");      // compressed VCF
+    args->out = hts_open(args->fn_out ? args->fn_out : "-", modew);
+    if ( !args->out ) {
+    	fprintf(stderr,"%s: %s\n", args->fn_out,strerror(errno));
+	exit(EXIT_FAILURE);
+	}
+  }
 
 static void destroy_data(args_t* args) {
 
 }
 
 static void usage(args_t* args) {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "About:   VCF/BCF conversion, view, subset and filter VCF/BCF files.\n");
+    fprintf(stderr, "Usage:   bcftools view [options] <in.vcf.gz>\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Output options:\n");
+    fprintf(stderr, "    -f,   --script-file <file>          filtering scheme script.\n");
+    fprintf(stderr, "Output options:\n");
+    fprintf(stderr, "    -o,   --output-file <file>          output file name [stdout]\n");
+    fprintf(stderr, "    -O,   --output-type <b|u|z|v>       b: compressed BCF, u: uncompressed BCF, z: compressed VCF, v: uncompressed VCF [v]\n");
 
 }
 
 int main(int argc,char** argv) {
  int retcode = EXIT_SUCCESS;
+ 
  int c;
- args_t* args;
+ args_t* args = (args_t*) calloc(1,sizeof(args_t));
+ 
+ 
  static struct option loptions[] =
     {
         {"script-file",no_argument,NULL,'f'},
+        {"output-type",required_argument,NULL,'O'},
+        {"output-file",required_argument,NULL,'o'},
         {NULL,0,NULL,0}
     };
+    args->files = bcf_sr_init();
+    args->output_type = FT_VCF;
+   
+     
     
-    char *script_file = NULL;
-    while ((c = getopt_long(argc, argv, "f:",loptions,NULL)) >= 0)
+    while ((c = getopt_long(argc, argv, "f:o:O:",loptions,NULL)) >= 0)
     	{
         switch (c)
 		{
-		    case 'f': script_file = optarg; break;
+		    case 'f': args->script_file = optarg; break;
+		    case 'o': args->fn_out = optarg; break;
+		    case 'O':
+		    	switch (optarg[0]) {
+		            case 'b': args->output_type = FT_BCF_GZ; break;
+		            case 'u': args->output_type = FT_BCF; break;
+		            case 'z': args->output_type = FT_VCF_GZ; break;
+		            case 'v': args->output_type = FT_VCF; break;
+		            default: {
+		            	fprintf(stderr,"The output type \"%s\" not recognised\n", optarg);
+		            	return EXIT_FAILURE;
+		            	}
+		            }
+		        break;
 		    case '?': usage(args);
-		    default: fprintf(stderr,"Unknown argument: %s\n", optarg);
+		    default: {
+		    	fprintf(stderr,"Unknown argument: %s\n", optarg);
+		    	exit(EXIT_FAILURE);
+		        }
 		}
 	    }
 
     
     char *fname = NULL;
-    if ( optind>=argc )
-    {
-        if ( !isatty(fileno((FILE *)stdin)) ) fname = "-";  // reading from stdin
-        else usage(args);
-    }
-    else fname = argv[optind];
-
-    // read in the regions from the command line
-  
-    init_data(args);
-    bcf_hdr_t *out_hdr = args->hnull ? args->hnull : (args->hsub ? args->hsub : args->hdr);
-    if (args->print_header)
-        bcf_hdr_write(args->out, out_hdr);
-    else if ( args->output_type & FT_BCF )
-    	{
-        fprintf(stderr,"BCF output requires header, cannot proceed with -H\n");
+    if ( optind ==argc )
+       {
+        if ( !isatty(fileno((FILE *)stdin)) )
+        	{
+        	fname = "-";  // reading from stdin
+        	}
+        else
+        	{
+        	fprintf(stderr,"input is missing");
+		exit(EXIT_FAILURE);
+        	}
         }
-    if (!args->header_only)
-    {
+    else if(optind+1==argc) {
+    	fname = argv[optind];
+	}
+   else
+   	{
+   	fprintf(stderr,"Illegal number of arguments.");
+	exit(EXIT_FAILURE);
+   	}
+        // setup output
+   if ( !bcf_sr_add_reader(args->files, fname) ) {
+	fprintf(stderr,"Failed to open %s: %s\n", fname,bcf_sr_strerror(args->files->errnum));
+	exit(EXIT_FAILURE);
+	}
+   init_data(args);
+  
+   
+    bcf_hdr_t *out_hdr = args->hdr;
+    bcf_hdr_write(args->out, out_hdr);
+   
         while ( bcf_sr_next_line(args->files) )
         {
             bcf1_t *line = args->files->readers[0].buffer[0];
             if ( line->errcode && out_hdr!=args->hdr ) {
             	fprintf(stderr,"Undefined tags in the header, cannot proceed in the sample subset mode.\n");
+            	exit(EXIT_FAILURE);
             	}
             bcf_write1(args->out, out_hdr, line);
         }
-    }
+    
     hts_close(args->out);
     destroy_data(args);
     bcf_sr_destroy(args->files);

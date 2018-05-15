@@ -31,9 +31,9 @@ AR= ar crs
 
 # Linux
 LD = gcc
-LDFLAGS = -shared -L$(HTSLIB)
+LDFLAGS = -shared 
 DEBUG=-g -Wno-char-subscripts -O
-SYS_LIBS= -ldl -lm -lhts
+SYS_LIBS= -ldl -lm
 PLATFORM_FEATURES= -DSUN_DL=1
 
 # Cygwin
@@ -76,10 +76,10 @@ all: $(LIBTARGET) $(STATICLIBTARGET) scheme$(EXE_EXT)
 	$(CC) -I. -c $(DEBUG) $(FEATURES) $(DL_FLAGS) $<
 
 $(LIBTARGET): $(OBJS)
-	$(LD) $(LDFLAGS) $(OUT) $(OBJS) $(SYS_LIBS)
+	$(LD) $(LDFLAGS) $(OUT) $(OBJS) -L$(HTSLIB) $(SYS_LIBS)  -lhts
 
 scheme$(EXE_EXT): $(OBJS)
-	$(CC) -o $@ $(DEBUG) -L$(HTSLIB) $(OBJS) $(SYS_LIBS)
+	$(CC) -o $@ $(DEBUG)  $(OBJS) -L$(HTSLIB) $(SYS_LIBS)  -lhts
 
 $(STATICLIBTARGET): $(OBJS)
 	$(AR) $@ $(OBJS)
