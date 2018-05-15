@@ -30,6 +30,8 @@
 #include <limits.h>
 #include <float.h>
 #include <ctype.h>
+#include <assert.h>
+#include <time.h>
 
 #if USE_STRCASECMP
 #include <strings.h>
@@ -4322,6 +4324,21 @@ static pointer opexe_6(scheme *sc, enum scheme_opcodes op) {
           s_retbool(is_closure(car(sc->args)));
      case OP_MACROP:          /* macro? */
           s_retbool(is_macro(car(sc->args)));
+     case OP_RAND:
+     	  s_return(sc,mk_real(sc, rand()/(double)RAND_MAX) );
+     case OP_TOUPPER:
+     case OP_TOLOWER:
+     	 {
+     	 int (*tr)(int)  = (sc->op == OP_TOUPPER?toupper:tolower);
+     	 size_t i=0UL,len = strlength(car(x));
+     	 pointer newstr = mk_empty_string(sc, len, ' ');
+     	 while(i<len) {
+     	 	strvalue(newstr)[i] = tr(strvalue(car(x))[i]);
+     	 	++i;
+     	 	}
+     	 s_return(sc, newstr);
+     	 break;
+     	 }
      default:
           snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
           Error_0(sc,sc->strbuff);
@@ -4620,7 +4637,7 @@ scheme *scheme_init_new() {
 }
 
 scheme *scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free) {
-  scheme *sc=(scheme*)malloc(sizeof(scheme));
+  scheme *sc=(scheme*)malloc(sizeof(scheme)); 
   if(!scheme_init_custom_alloc(sc,malloc,free)) {
     free(sc);
     return 0;
@@ -4631,6 +4648,7 @@ scheme *scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free) {
 
 
 int scheme_init(scheme *sc) {
+ srand(time(NULL));
  return scheme_init_custom_alloc(sc,malloc,free);
 }
 
