@@ -110,6 +110,13 @@ static const char *strlwr(char *s) {
 # define FIRST_CELLSEGS 3
 #endif
 
+typedef struct scheme_type_t
+	{
+	int id;
+	char name[30];
+	}* scheme_type;
+
+
 
 enum scheme_types {
   T_STRING=1,
