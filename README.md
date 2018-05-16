@@ -10,4 +10,6 @@ Fork of tinyscheme http://tinyscheme.sourceforge.net/ by Dimitrios Souflis , Kev
 
 `(trim " ABC  ") => "ABC" ` remove leading/trailing spaces
 
+`(string-split "A B C " " ") => #(A B C) ` split a string using the delimiter (2nd arg). return value is a vector. trailing delimiters are skipped.
 
+ `(normalize-space "  A    B \n C \n\n") = > "A B C" ` collapses whitespace in a string.

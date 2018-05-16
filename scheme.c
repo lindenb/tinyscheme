@@ -4408,6 +4408,80 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
      	 s_return(sc, newstr);
      	 break;
      	 }
+     case OP_STRSPLIT:
+     	{
+     	char delim= '\t';
+     	char* str = strdup(strvalue(car(sc->args)));
+     	size_t i,j,str_len= strlen(str);
+     	int vect_index=0,vect_len = 1;
+     	pointer vec;
+     	
+     	if(is_string(car(cdr(sc->args))))
+		{
+		delim = strvalue(car(cdr(sc->args)))[0];
+		}
+     	while(str_len>0 && str[str_len-1]==delim)
+     		{
+     		 str[str_len-1]=0;
+     		str_len--;
+     		}
+     	for(i=0;i< str_len;i++)
+     		{
+     		if(str[i]==delim) vect_len++;
+     		}
+     	vec=mk_vector(sc,vect_len);
+     	for(i=0,j=0;i< str_len;i++)
+		{
+		if(str[i]!=delim) continue;
+		str[i]=0;
+		set_vector_elem(vec,vect_index,mk_string(sc,&str[j]));
+		vect_index++;
+		j=i+1;			
+		}
+	set_vector_elem(vec,vect_index,mk_string(sc,&str[j]));
+     	free(str);
+     	s_return(sc, vec);
+     	break;
+     	}
+     case OP_STRNORMALIZE_SPACE:
+     	{
+     	size_t i=0,j=0;
+     	pointer x;
+     	char* str = strdup(strvalue(car(sc->args)));
+     	size_t str_len ;
+     	char* p= str;
+
+     	while(*p!=0 && isspace(*p)) p++;
+
+     	str_len = strlen(p);
+	while(str_len>0 && isspace(p[str_len-1])) {
+		p[str_len-1]=0;
+		str_len--;
+		}
+
+     	while(p[i]!=0)
+     		{
+     		if(isspace(p[i])) {
+     			p[j]=' ';
+     			i++;
+     			j++;
+     			while(p[i]!=0 && isspace(p[i])) i++;
+     			}
+     		else
+     			{
+     			p[j]=p[i];
+     			++i;
+     			++j;
+     			}
+     		
+     		}
+     	p[j]=0;
+     	 
+     	x = mk_string(sc,p);
+     	free(str);
+     	s_return(sc, x);
+     	break;
+     	}
     /*
     	case OP_REGCOMP:
     		{

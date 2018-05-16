@@ -82,7 +82,9 @@ test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))
 	echo '(display (tolower "ABC\n"))' | ./$(APPNAME)  | grep abc
 	echo '(display (toupper "abc\n"))' | ./$(APPNAME)  | grep ABC
 	echo '(display (trim "  \n  A B C     \n"))' | ./$(APPNAME)  | grep "A B C"
-
+	echo '(display (string-split "A B C " " "))' | ./$(APPNAME)| grep -F "#(A B C)"
+	echo '(vector-length (string-split "A B C D E  " " "))' | ./$(APPNAME) | grep -F "5"
+	echo '(display (normalize-space "  A    B \n C \n\n"))' | ./$(APPNAME)| grep "A B C"
 
 %.$(Osuf): %.c
 	$(CC) -I. -c $(CFLAGS) $(DEBUG) $(CFLAGS) $(DL_FLAGS) $<
