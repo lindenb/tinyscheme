@@ -133,13 +133,7 @@ enum scheme_types {
   T_MACRO=12,
   T_PROMISE=13,
   T_ENVIRONMENT=14,
-#if TINYSCHEME_EXTENDED && USE_REGEX
-  T_REGEX =15,
-  T_LAST_SYSTEM_TYPE=15
-#else
   T_LAST_SYSTEM_TYPE=14
-#endif
-  
 };
 
 /* ADJ is enough slack to align cells in a TYPE_BITS-bit boundary */
@@ -269,10 +263,7 @@ INTERFACE INLINE int is_immutable(pointer p) { return (typeflag(p)&T_IMMUTABLE);
 INTERFACE INLINE void setimmutable(pointer p) { typeflag(p) |= T_IMMUTABLE; }
 
 
-#if TINYSCHEME_EXTENDED && USE_REGEX
-INTERFACE INLINE int is_regex(pointer p)    { return (type(p)==T_REGEX); }
-#define regexvalue(p)      ((p)->_object.preg)
-#endif
+
 
 #define caar(p)          car(car(p))
 #define cadr(p)          car(cdr(p))
@@ -1341,10 +1332,12 @@ static void gc(scheme *sc, pointer a, pointer b) {
 static void finalize_cell(scheme *sc, pointer a) {
   if(is_string(a)) {
     sc->free(strvalue(a));
-  } else if(is_regex(a)) {
-  	regfree(regexvalue(a));
-  	sc->free(regexvalue(a));
-  } else if(is_port(a)) {
+  } 
+  /** BEGIN CUSTOM DESTRUCTORS */
+  
+  
+  /** END CUSTOM DESTRUCTORS */
+  else if(is_port(a)) {
     if(a->_object._port->kind&port_file
        && a->_object._port->rep.stdio.closeit) {
       port_close(sc,a,port_input|port_output);
@@ -2051,9 +2044,13 @@ static void atom2str(scheme *sc, pointer l, int f, char **pp, int *plen) {
           snprintf(p,STRBUFFSIZE,"#<FOREIGN PROCEDURE %ld>", procnum(l));
      } else if (is_continuation(l)) {
           p = "#<CONTINUATION>";
-     } else if (is_regex(l)) {
-         p = "#<REGEX>";
-     } else {
+     } 
+     /** BEGIN CUSTOM TOSTRING */
+     
+     
+     
+     /** END CUSTOM TOSTRING */
+     else {
           p = "#<ERROR>";
      }
      *pp=p;
@@ -4367,25 +4364,7 @@ static pointer opexe_6(scheme *sc, enum scheme_opcodes op) {
 
 #if TINYSCHEME_EXTENDED
 
-#if USE_REGEX
-pointer mk_regex(scheme *sc, const char *reg,const char* modifiers) {
-	int cflags = REG_EXTENDED;
-	pointer x = get_cell(sc, sc->NIL, sc->NIL);
-	
-	if(modifiers!=NULL) {
-		if(strchr(modifiers,'i')!=NULL) cflags |= REG_ICASE;
-		}
-	
-        typeflag(x) = (T_REGEX | T_ATOM);
-        regexvalue(x) = malloc(sizeof(regex_t));
-	if(regcomp(regexvalue(x),reg,cflags)!=0) {
-		free(regexvalue(x));
-		fprintf(stderr,"[WARN]: Cannot compile regular expression '%s'.\n",reg);
-		return sc->NIL;
-		}
-        return x;
-	}
-#endif
+
 
 static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
 	switch (op) {
@@ -4429,7 +4408,7 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
      	 s_return(sc, newstr);
      	 break;
      	 }
-    #if USE_REGEX
+    /*
     	case OP_REGCOMP:
     		{
     		char* reg = strvalue(car(sc->args));
@@ -4465,7 +4444,8 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
     			}
     		break;
     		}
-    #endif
+    	*/
+  
 	default: {
           snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal extended operator", sc->op);
           Error_0(sc,sc->strbuff);

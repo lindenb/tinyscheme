@@ -10,6 +10,4 @@ Fork of tinyscheme http://tinyscheme.sourceforge.net/ by Dimitrios Souflis , Kev
 
 `(trim " ABC  ") => "ABC" ` remove leading/trailing spaces
 
-`(regcomp "[A-Z]") ` ; `(regcomp "[A-Z]" "i") ` compiles regular expression. Second optional argument is a modifier: 'i' for ignore case.
 
-`(string-match "aatgc" (regcomp "[A-Z]+" "i")) => #t ` test the whole string for a regular expression. if the second argument is a string, we use a simple string comparaion.

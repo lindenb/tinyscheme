@@ -82,12 +82,7 @@ test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))
 	echo '(display (tolower "ABC\n"))' | ./$(APPNAME)  | grep abc
 	echo '(display (toupper "abc\n"))' | ./$(APPNAME)  | grep ABC
 	echo '(display (trim "  \n  A B C     \n"))' | ./$(APPNAME)  | grep "A B C"
-	echo '(regcomp "[A-Z]")' | ./$(APPNAME)
-	echo '(regcomp "[A-Z]" "i")' | ./$(APPNAME)
-	echo '(string-match "atgatga" (regcomp "[A-Z]+" "i"))'| ./$(APPNAME)  | grep -F '#t'
-	echo '(string-match "ATGC" "ATGC")'| ./$(APPNAME)  | grep -F '#t'
-	echo '(string-match "ATGC" "xxx")'| ./$(APPNAME)  | grep -F '#f'
-	echo '(string-match "1gatg1" (regcomp "[A-Z]+" "i"))'| ./$(APPNAME)  | grep -F '#f'
+
 
 %.$(Osuf): %.c
 	$(CC) -I. -c $(CFLAGS) $(DEBUG) $(CFLAGS) $(DL_FLAGS) $<
