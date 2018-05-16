@@ -110,6 +110,7 @@ static const char *strlwr(char *s) {
 # define FIRST_CELLSEGS 3
 #endif
 
+
 enum scheme_types {
   T_STRING=1,
   T_NUMBER=2,
@@ -125,7 +126,13 @@ enum scheme_types {
   T_MACRO=12,
   T_PROMISE=13,
   T_ENVIRONMENT=14,
+#if TINYSCHEME_EXTENDED && USE_REGEX
+  T_REGEX =15,
+  T_LAST_SYSTEM_TYPE=15
+#else
   T_LAST_SYSTEM_TYPE=14
+#endif
+  
 };
 
 /* ADJ is enough slack to align cells in a TYPE_BITS-bit boundary */
@@ -171,6 +178,7 @@ static num num_one;
 INTERFACE INLINE int is_string(pointer p)     { return (type(p)==T_STRING); }
 #define strvalue(p)      ((p)->_object._string._svalue)
 #define strlength(p)        ((p)->_object._string._length)
+
 
 INTERFACE static int is_list(scheme *sc, pointer p);
 INTERFACE INLINE int is_vector(pointer p)    { return (type(p)==T_VECTOR); }
@@ -252,6 +260,12 @@ INTERFACE INLINE int is_environment(pointer p) { return (type(p)==T_ENVIRONMENT)
 INTERFACE INLINE int is_immutable(pointer p) { return (typeflag(p)&T_IMMUTABLE); }
 /*#define setimmutable(p)  typeflag(p) |= T_IMMUTABLE*/
 INTERFACE INLINE void setimmutable(pointer p) { typeflag(p) |= T_IMMUTABLE; }
+
+
+#if TINYSCHEME_EXTENDED && USE_REGEX
+INTERFACE INLINE int is_regex(pointer p)    { return (type(p)==T_REGEX); }
+#define regexvalue(p)      ((p)->_object.preg)
+#endif
 
 #define caar(p)          car(car(p))
 #define cadr(p)          car(cdr(p))
@@ -1320,6 +1334,9 @@ static void gc(scheme *sc, pointer a, pointer b) {
 static void finalize_cell(scheme *sc, pointer a) {
   if(is_string(a)) {
     sc->free(strvalue(a));
+  } else if(is_regex(a)) {
+  	regfree(regexvalue(a));
+  	sc->free(regexvalue(a));
   } else if(is_port(a)) {
     if(a->_object._port->kind&port_file
        && a->_object._port->rep.stdio.closeit) {
@@ -1565,6 +1582,11 @@ static int realloc_port_string(scheme *sc, port *p)
     return 0;
   }
 }
+
+static int sc_isatty(scheme *sc) {
+	port *pt=sc->outport->_object._port;
+	return pt->kind&port_file && isatty(fileno(pt->rep.stdio.file));
+	}
 
 INTERFACE void putstr(scheme *sc, const char *s) {
   port *pt=sc->outport->_object._port;
@@ -2022,6 +2044,8 @@ static void atom2str(scheme *sc, pointer l, int f, char **pp, int *plen) {
           snprintf(p,STRBUFFSIZE,"#<FOREIGN PROCEDURE %ld>", procnum(l));
      } else if (is_continuation(l)) {
           p = "#<CONTINUATION>";
+     } else if (is_regex(l)) {
+         p = "#<REGEX>";
      } else {
           p = "#<ERROR>";
      }
@@ -2522,8 +2546,11 @@ static pointer opexe_0(scheme *sc, enum scheme_opcodes op) {
      {
        sc->envir = sc->global_env;
        dump_stack_reset(sc);
-       putstr(sc,"\n");
-       putstr(sc,prompt);
+       
+       if(sc_isatty(sc)) {
+       	putstr(sc,"\n");
+       	putstr(sc,prompt);
+       }
      }
 
        /* Set up another iteration of REPL */
@@ -4333,6 +4360,26 @@ static pointer opexe_6(scheme *sc, enum scheme_opcodes op) {
 
 #if TINYSCHEME_EXTENDED
 
+#if USE_REGEX
+pointer mk_regex(scheme *sc, const char *reg,const char* modifiers) {
+	int cflags = REG_EXTENDED;
+	pointer x = get_cell(sc, sc->NIL, sc->NIL);
+	
+	if(modifiers!=NULL) {
+		if(strchr(modifiers,'i')!=NULL) cflags |= REG_ICASE;
+		}
+	
+        typeflag(x) = (T_REGEX | T_ATOM);
+        regexvalue(x) = malloc(sizeof(regex_t));
+	if(regcomp(regexvalue(x),reg,cflags)!=0) {
+		free(regexvalue(x));
+		fprintf(stderr,"[WARN]: Cannot compile regular expression '%s'.\n",reg);
+		return sc->NIL;
+		}
+        return x;
+	}
+#endif
+
 static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
 	switch (op) {
      case OP_RAND: {
@@ -4375,6 +4422,43 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
      	 s_return(sc, newstr);
      	 break;
      	 }
+    #if USE_REGEX
+    	case OP_REGCOMP:
+    		{
+    		char* reg = strvalue(car(sc->args));
+    		char* modifiers = NULL;
+    		if(cdr(sc->args)!=sc->NIL) {
+    		  modifiers = strvalue(car(cdr(sc->args)));
+    		  }
+		s_return(sc,mk_regex(sc, reg,modifiers));
+		break;
+    		}
+    	case OP_REGMATCH:
+    		{
+    		regmatch_t m;
+    		char* str = strvalue(car(sc->args));
+    		if(is_regex(car(cdr(sc->args))))
+    			{
+    			if(regexec(regexvalue(car(cdr(sc->args))),str,1UL,&m, 0) == 0 && m.rm_so == 0 && m.rm_eo == strlen(str) ) {
+	    			s_return(sc,sc->T);
+	    			}
+			else
+				{
+				s_return(sc,sc->F);
+				}
+    			}
+    		else if (is_string(car(cdr(sc->args))))
+    			{
+    			char* str2 = strvalue(car(cdr(sc->args)));
+    			s_return(sc,strcmp(str,str2)==0?sc->T:sc->F);
+    			}
+    		else
+    			{
+    			s_return(sc,sc->F);
+    			}
+    		break;
+    		}
+    #endif
 	default: {
           snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal extended operator", sc->op);
           Error_0(sc,sc->strbuff);
@@ -5027,7 +5111,7 @@ int main(int argc, char **argv) {
   int retcode;
   int isfile=1;
 
-  if(argc==1) {
+  if(argc==1 && isatty(fileno(stdout)) && isatty(fileno(stdin)) ) {
     printf(banner);
   }
   if(argc==2 && strcmp(argv[1],"-?")==0) {

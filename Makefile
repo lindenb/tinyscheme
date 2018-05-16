@@ -62,7 +62,7 @@ PLATFORM_CFLAGS=
 #OUT = -o $@
 
 
-CFLAGS = $(PLATFORM_CFLAGS) -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0 -DTINYSCHEME_EXTENDED=1
+CFLAGS = $(PLATFORM_CFLAGS) -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0 -DTINYSCHEME_EXTENDED=1 -DUSE_REGEX=1
 APPNAME=scheme
 
 OBJS = $(addsuffix .$(Osuf),$(APPNAME) dynload)
@@ -81,9 +81,13 @@ test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))
 	echo '(display (string-append "\n" (number->string (rand)) "\n") )' | ./$(APPNAME)  | awk '($$1>=0.0 && $$1<=1.0)' | grep -F '.'
 	echo '(display (tolower "ABC\n"))' | ./$(APPNAME)  | grep abc
 	echo '(display (toupper "abc\n"))' | ./$(APPNAME)  | grep ABC
-	echo '(display "  \n  A B C     \n")' | ./$(APPNAME)  | grep "A B C"
-	
-
+	echo '(display (trim "  \n  A B C     \n"))' | ./$(APPNAME)  | grep "A B C"
+	echo '(regcomp "[A-Z]")' | ./$(APPNAME)
+	echo '(regcomp "[A-Z]" "i")' | ./$(APPNAME)
+	echo '(string-match "atgatga" (regcomp "[A-Z]+" "i"))'| ./$(APPNAME)  | grep -F '#t'
+	echo '(string-match "ATGC" "ATGC")'| ./$(APPNAME)  | grep -F '#t'
+	echo '(string-match "ATGC" "xxx")'| ./$(APPNAME)  | grep -F '#f'
+	echo '(string-match "1gatg1" (regcomp "[A-Z]+" "i"))'| ./$(APPNAME)  | grep -F '#f'
 
 %.$(Osuf): %.c
 	$(CC) -I. -c $(CFLAGS) $(DEBUG) $(CFLAGS) $(DL_FLAGS) $<
