@@ -3918,7 +3918,7 @@ static pointer opexe_4(scheme *sc, enum scheme_opcodes op) {
 
      case OP_CURR_OUTPORT: /* current-output-port */
           s_return(sc,sc->outport);
-
+#if !SANDBOXED
      case OP_OPEN_INFILE: /* open-input-file */
      case OP_OPEN_OUTFILE: /* open-output-file */
      case OP_OPEN_INOUTFILE: /* open-input-output-file */ {
@@ -3935,6 +3935,7 @@ static pointer opexe_4(scheme *sc, enum scheme_opcodes op) {
           }
           s_return(sc,p);
      }
+#endif
 
 #if USE_STRING_PORTS
      case OP_OPEN_INSTRING: /* open-input-string */

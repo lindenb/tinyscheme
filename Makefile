@@ -62,13 +62,14 @@ PLATFORM_CFLAGS=
 #OUT = -o $@
 
 
-CFLAGS = $(PLATFORM_CFLAGS) -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0 -DTINYSCHEME_EXTENDED=1 -DUSE_REGEX=1
+CFLAGS = $(PLATFORM_CFLAGS) -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0 -DTINYSCHEME_EXTENDED=1 -DUSE_REGEX=1 -DSANDBOXED=1 
 APPNAME=scheme
 
 OBJS = $(addsuffix .$(Osuf),$(APPNAME) dynload)
 
 LIBTARGET = $(addsuffix .$(SOsuf),$(LIBPREFIX)tiny$(APPNAME))
 STATICLIBTARGET = $(addsuffix .$(LIBsuf),$(LIBPREFIX)tiny$(APPNAME))
+EXECUTE_APP=./$(APPNAME)
 
 .PHONY: all clean test test-extended
 
@@ -77,14 +78,14 @@ all: test $(LIBTARGET) $(STATICLIBTARGET)
 test : test-extended
 
 test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))  
-	echo '(display "AAA\n")' | ./$(APPNAME)  | grep AAA
-	echo '(display (string-append "\n" (number->string (rand)) "\n") )' | ./$(APPNAME)  | awk '($$1>=0.0 && $$1<=1.0)' | grep -F '.'
-	echo '(display (tolower "ABC\n"))' | ./$(APPNAME)  | grep abc
-	echo '(display (toupper "abc\n"))' | ./$(APPNAME)  | grep ABC
-	echo '(display (trim "  \n  A B C     \n"))' | ./$(APPNAME)  | grep "A B C"
-	echo '(display (string-split "A B C " " "))' | ./$(APPNAME)| grep -F "#(A B C)"
-	echo '(vector-length (string-split "A B C D E  " " "))' | ./$(APPNAME) | grep -F "5"
-	echo '(display (normalize-space "  A    B \n C \n\n"))' | ./$(APPNAME)| grep "A B C"
+	echo '(display "AAA\n")' | $(EXECUTE_APP)  | grep AAA
+	echo '(display (string-append "\n" (number->string (rand)) "\n") )' | $(EXECUTE_APP)  | awk '($$1>=0.0 && $$1<=1.0)' | grep -F '.'
+	echo '(display (tolower "ABC\n"))' | $(EXECUTE_APP)  | grep abc
+	echo '(display (toupper "abc\n"))' | $(EXECUTE_APP)  | grep ABC
+	echo '(display (trim "  \n  A B C     \n"))' | $(EXECUTE_APP)  | grep "A B C"
+	echo '(display (string-split "A B C " " "))' | $(EXECUTE_APP) | grep -F "#(A B C)"
+	echo '(vector-length (string-split "A B C D E  " " "))' | $(EXECUTE_APP) | grep -F "5"
+	echo '(display (normalize-space "  A    B \n C \n\n"))' | $(EXECUTE_APP) | grep "A B C"
 
 %.$(Osuf): %.c
 	$(CC) -I. -c $(CFLAGS) $(DEBUG) $(CFLAGS) $(DL_FLAGS) $<

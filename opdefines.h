@@ -156,9 +156,13 @@
     _OP_DEF(opexe_4, "oblist",                         0,  0,       0,                               OP_OBLIST           )
     _OP_DEF(opexe_4, "current-input-port",             0,  0,       0,                               OP_CURR_INPORT      )
     _OP_DEF(opexe_4, "current-output-port",            0,  0,       0,                               OP_CURR_OUTPORT     )
+
+#if !SANDBOXED
     _OP_DEF(opexe_4, "open-input-file",                1,  1,       TST_STRING,                      OP_OPEN_INFILE      )
     _OP_DEF(opexe_4, "open-output-file",               1,  1,       TST_STRING,                      OP_OPEN_OUTFILE     )
     _OP_DEF(opexe_4, "open-input-output-file",         1,  1,       TST_STRING,                      OP_OPEN_INOUTFILE   )
+#endif    
+
 #if USE_STRING_PORTS
     _OP_DEF(opexe_4, "open-input-string",              1,  1,       TST_STRING,                      OP_OPEN_INSTRING    )
     _OP_DEF(opexe_4, "open-input-output-string",       1,  1,       TST_STRING,                      OP_OPEN_INOUTSTRING )

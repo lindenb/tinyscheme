@@ -3,12 +3,6 @@
 #ifndef _SCHEME_PRIVATE_H
 #define _SCHEME_PRIVATE_H
 
-#if TINYSCHEME_EXTENDED
-#if USE_REGEX
-#include <sys/types.h>
-#include <regex.h>
-#endif
-#endif
 
 #include "scheme.h"
 /*------------------ Ugly internals -----------------------------------*/
@@ -58,9 +52,6 @@ struct cell {
     num _number;
     port *_port;
     foreign_func _ff;
-#if TINYSCHEME_EXTENDED && USE_REGEX
-    regex_t *preg;
-#endif
     struct {
       struct cell *_car;
       struct cell *_cdr;
