@@ -3,14 +3,11 @@
 #ifndef _SCHEME_PRIVATE_H
 #define _SCHEME_PRIVATE_H
 
-#if TINYSCHEME_EXTENDED
-#if USE_REGEX
-#include <sys/types.h>
-#include <regex.h>
-#endif
-#endif
+
+
 
 #include "scheme.h"
+#include "sam_scm.h"
 /*------------------ Ugly internals -----------------------------------*/
 /*------------------ Of interest only to FFI users --------------------*/
 
@@ -47,6 +44,14 @@ typedef struct port {
   } rep;
 } port;
 
+typedef struct sc_sam_t
+	{
+	int type;
+	bam_hdr_t *header;
+	bam1_t* rec;
+	} sc_sam_t;
+
+
 /* cell structure */
 struct cell {
   unsigned int _flag;
@@ -58,9 +63,7 @@ struct cell {
     num _number;
     port *_port;
     foreign_func _ff;
-#if TINYSCHEME_EXTENDED && USE_REGEX
-    regex_t *preg;
-#endif
+    sc_sam_t hts;
     struct {
       struct cell *_car;
       struct cell *_cdr;

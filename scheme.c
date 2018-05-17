@@ -27,11 +27,14 @@
 # include <math.h>
 #endif
 
+#include <unistd.h>
+#include <getopt.h>
 #include <limits.h>
 #include <float.h>
 #include <ctype.h>
 #include <assert.h>
 #include <time.h>
+#include <errno.h>
 
 #if USE_STRCASECMP
 #include <strings.h>
@@ -133,7 +136,8 @@ enum scheme_types {
   T_MACRO=12,
   T_PROMISE=13,
   T_ENVIRONMENT=14,
-  T_LAST_SYSTEM_TYPE=14
+  T_SAMDATA=15,
+  T_LAST_SYSTEM_TYPE=15
 };
 
 /* ADJ is enough slack to align cells in a TYPE_BITS-bit boundary */
@@ -249,6 +253,13 @@ INTERFACE INLINE int is_promise(pointer p)  { return (type(p)==T_PROMISE); }
 
 INTERFACE INLINE int is_environment(pointer p) { return (type(p)==T_ENVIRONMENT); }
 #define setenvironment(p)    typeflag(p) = T_ENVIRONMENT
+
+
+
+
+INTERFACE INLINE int is_samdata(pointer p)  { return (type(p)==T_SAMDATA); }
+
+
 
 #define is_atom(p)       (typeflag(p)&T_ATOM)
 #define setatom(p)       typeflag(p) |= T_ATOM
@@ -1335,6 +1346,9 @@ static void finalize_cell(scheme *sc, pointer a) {
   } 
   /** BEGIN CUSTOM DESTRUCTORS */
   
+  else if(is_samdata(a)) {
+    
+  } 
   
   /** END CUSTOM DESTRUCTORS */
   else if(is_port(a)) {
@@ -2047,6 +2061,9 @@ static void atom2str(scheme *sc, pointer l, int f, char **pp, int *plen) {
      } 
      /** BEGIN CUSTOM TOSTRING */
      
+     else if (is_samdata(l)) {
+          p = "#<SAMDATA>";
+     } 
      
      
      /** END CUSTOM TOSTRING */
@@ -5249,6 +5266,185 @@ int main(int argc, char **argv) {
   scheme_deinit(&sc);
 
   return retcode;
+}
+
+#else
+
+typedef struct priv_sam_scm_filter
+	{
+	scheme sc;
+	} priv_sam_scm_filter;
+
+static priv_sam_scm_filter* priv_sam_scm_filter_init() {
+	priv_sam_scm_filter* ctx =(priv_sam_scm_filter*)malloc(sizeof(priv_sam_scm_filter));
+	scheme* sc = &(ctx->sc);
+	if(!scheme_init(sc)) {
+	 	free(ctx);
+    		return NULL;
+  		}
+ 	scheme_set_input_port_file(sc, stdin);
+  	scheme_set_output_port_file(sc, stdout);
+	return ctx;
+	}
+
+sam_scm_filter sam_scm_filter_from_file(const char* fname) {
+	FILE* in;
+	priv_sam_scm_filter* ctx  = NULL;
+	if(fname==NULL) return NULL;
+	ctx = priv_sam_scm_filter_init();
+	if(ctx == NULL) return NULL;
+	
+	in = fopen(fname,"r");
+  	if(in==NULL) {
+	  	fprintf(stderr,"[scm::init] cannot open user script %s . %s\n",fname,strerror(errno));
+	  	sam_scm_filter_destroy((sam_scm_filter)ctx);
+	  	return NULL;
+	  	}
+  	scheme_load_named_file(&(ctx->sc),in,fname);
+	fclose(in);
+	
+	return (sam_scm_filter)ctx;
+	}
+
+
+void sam_scm_filter_destroy(sam_scm_filter filter) {
+	priv_sam_scm_filter* ctx  = (priv_sam_scm_filter*)filter;
+	if(ctx==NULL) return ;
+	scheme_deinit(&(ctx->sc));
+	free(ctx);
+	}
+
+int sam_scm_filter_accept(sam_scm_filter filter,const bam_hdr_t *header,const bam1_t* rec)
+	{
+	priv_sam_scm_filter* ctx  = (priv_sam_scm_filter*)filter;
+	if(ctx==NULL) return 1;
+	return 1;
+	}
+
+
+
+static void usage() {
+    fprintf(stderr, "\n");
+    fprintf(stderr, "About:   Bam/Filtering conversion, view, subset and filter VCF/BCF files.\n");
+    fprintf(stderr, "Usage:   bcftools view [options] <in.vcf.gz>\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Output options:\n");
+    fprintf(stderr, "    -f,   --script-file <file>          filtering scheme script.\n");
+    fprintf(stderr, "Output options:\n");
+    fprintf(stderr, "    -o,   --output-file <file>          output file name [stdout]\n");
+    fprintf(stderr, "    -O,   --output-type <b|u|z|v>       b: compressed BCF, u: uncompressed BCF, z: compressed VCF, v: uncompressed VCF [v]\n");
+
+}
+
+int main(int argc,char** argv) {
+ int ret = EXIT_SUCCESS;
+ samFile *in = 0, *out = 0;
+ char *script_file = NULL;
+ char* fn_out = NULL;
+ char* fn_in = NULL;
+ char out_mode[5];
+ int c;
+ sam_scm_filter filter = NULL;
+ bam1_t *b = NULL;
+ const htsFormat infmt;
+  const htsFormat outfmt;
+ bam_hdr_t *header = NULL;
+ 
+ struct option loptions[] =
+    {
+        {"script-file",no_argument,NULL,'f'},
+        {"output-type",required_argument,NULL,'O'},
+        {"output-file",required_argument,NULL,'o'},
+        {NULL,0,NULL,0}
+    };
+
+
+   strcpy(out_mode, "w");
+     
+    
+    while ((c = getopt_long(argc, argv, "f:o:O:b",loptions,NULL)) >= 0)
+    	{
+        switch (c)
+		{
+		   case 'b': out_format = "b"; break;
+		    case 'f': script_file = optarg; break;
+		    case 'o':fn_out = optarg; break;
+		    case '?': usage();
+		    default: {
+		    	fprintf(stderr,"Unknown argument: %s\n", optarg);
+		    	exit(EXIT_FAILURE);
+		        }
+		}
+	    }
+  
+  
+    if(script_file == NULL ) {
+    	fprintf(stderr,"use script missing!\n");
+    	return EXIT_FAILURE;
+        }
+    
+    filter = sam_scm_filter_from_file(script_file);
+    if(filter == NULL ) {
+    	fprintf(stderr,"Cannot compile %s\n",script_file);
+    	return EXIT_FAILURE;
+    	}
+    
+    char *fname = NULL;
+    if ( optind ==argc )
+       {
+        if ( !isatty(fileno((FILE *)stdin)) )
+        	{
+        	fname = "-";  // reading from stdin
+        	}
+        else
+        	{
+        	fprintf(stderr,"input is missing");
+		exit(EXIT_FAILURE);
+        	}
+        }
+    else if(optind+1==argc) {
+    	fname = argv[optind];
+	}
+   else
+   	{
+   	fprintf(stderr,"Illegal number of arguments.");
+	exit(EXIT_FAILURE);
+   	}
+        // setup output
+   
+     if ((in = sam_open_format(fn_in, "r",&infmt)) == 0) {
+       fprintf(stderr, "failed to open \"%s\" for reading", fn_in);
+          return EXIT_FAILURE;
+   	 }
+	if ((header = sam_hdr_read(in)) == 0) {
+        fprintf(stderr, "[main_samview] fail to read the header from \"%s\".\n", fn_in);
+        return EXIT_FAILURE;
+    }
+
+ if ((out = sam_open_format(fn_out? fn_out : "-", out_mode, &outfmt)) == 0) {
+             fprintf(stderr,"failed to open \"%s\" for writing", fn_out? fn_out : "standard output");
+             return EXIT_FAILURE;
+        }
+
+
+if (sam_hdr_write(out, header) != 0) {
+                fprintf(stderr, "[main_samview] failed to write the SAM header\n");
+                return EXIT_FAILURE;
+            }
+
+   b = bam_init1();
+   while ((c = sam_read1(in, header, b)) >= 0) { // read one alignment from `in'
+            if (!sam_scm_filter_accept(filter,header, b)) continue;
+            if (sam_write1(out, header, b) < 0) {
+            	fprintf(stderr, "I/O error\n");
+                return EXIT_FAILURE;
+            	}
+            }
+    bam_destroy1(b);
+    sam_scm_filter_destroy(filter);
+    sam_close(in);
+    sam_close(out);
+ return EXIT_SUCCESS;
 }
 
 #endif
