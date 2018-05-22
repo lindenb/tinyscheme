@@ -4552,7 +4552,19 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
 
 static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	switch (op) {
-	
+	case OP_SAM_TID:
+	     	 {
+	     	 pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+
+	     	 bam1_t *b = bam1value(x).rec;
+	     	 bam1_core_t *c = &b->core;
+	     	 s_return(sc, mk_integer(sc,c->tid));	     	
+	     	 break;
+	     	 }
 	case OP_SAM_CONTIG:
 	     	 {
 	     	 pointer x = car(sc->args);

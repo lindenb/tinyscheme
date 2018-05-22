@@ -1,5 +1,13 @@
 Fork of tinyscheme http://tinyscheme.sourceforge.net/ by Dimitrios Souflis , Kevin Cozens and Jonathan S. Shapiro 
 
+
+## SAM function
+
+`(sam-tid b)` => returns the reference ID of the read `b`.
+
+`(sam-contig b)` => returns the reference name the read `b` or `NIL`
+
+
 ## Extended functions
 
 `(rand) => 0.89789` create a random float bewteen 0.0 and 1.0. 
