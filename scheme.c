@@ -4548,7 +4548,38 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
     }
 
 #endif
-    
+
+
+static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
+	switch (op) {
+	
+	case OP_SAM_CONTIG:
+	     	 {
+	     	 pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	 bam_hdr_t *h  = bam1value(x).header;
+	     	 bam1_t *b = bam1value(x).rec;
+	     	 bam1_core_t *c = &b->core;
+	     	  
+	     	 if (c->tid >= 0) { // chr
+        	     s_return(sc, mk_string(sc,h->target_name[c->tid] ));
+                     }
+		else
+		     {
+		     s_return(sc,sc->NIL);
+		     }
+	     	 break;
+	     	 }
+	default: {
+          snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal extended operator", sc->op);
+          Error_0(sc,sc->strbuff);
+          break;
+          }
+	}
+}
     
 typedef pointer (*dispatch_func)(scheme *, enum scheme_opcodes);
 
@@ -4615,6 +4646,7 @@ static op_code_info dispatch_table[]= {
 #else
 #error xxxx
 #endif
+#include "opdefines-hts.h"
 #undef _OP_DEF
   { 0 }
 };

@@ -165,6 +165,7 @@ enum scheme_opcodes {
 #if TINYSCHEME_EXTENDED
 #include "opdefines-extended.h"
 #endif
+#include "opdefines-hts.h"
 #undef _OP_DEF
   OP_MAXDEFINED
 };

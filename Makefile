@@ -83,6 +83,7 @@ test : test-bam
 
 test-bam: $(addsuffix $(EXE_EXT),$(APPNAME))
 	$(EXEC_APP) -f test01.scm ../jvarkit-git/src/test/resources/S1.bam
+	$(EXEC_APP) -f test02.scm ../jvarkit-git/src/test/resources/S1.bam
 
 test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))
 	echo '(display "AAA\n")' | $(EXEC_APP)  | grep AAA
