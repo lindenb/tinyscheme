@@ -27,6 +27,7 @@
 # include <math.h>
 #endif
 
+#include <htslib/kstring.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <limits.h>
@@ -4595,8 +4596,127 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	     	bam1_t *b = bam1value(x).rec;
 	     	s_return(sc, mk_string(sc,bam_get_qname(b)));
 	 	}   	 
-	  
-	default: {
+	case OP_SAM_FLAG:
+		{
+		pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	bam1_t *b = bam1value(x).rec;
+	     	bam1_core_t *c = &b->core;
+	     	s_return(sc, mk_integer(sc,c->flag));
+		break;
+		}
+	case OP_SAM_QUAL:
+		{
+		pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	bam1_t *b = bam1value(x).rec;
+	     	bam1_core_t *c = &b->core;
+	     	s_return(sc, mk_integer(sc,c->qual));
+		break;
+		}
+	case OP_SAM_HAS_CIGAR:
+		{
+		pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	bam1_t *b = bam1value(x).rec;
+	     	bam1_core_t *c = &b->core;
+	     	
+	        s_return(sc,c->tid <= 0 || c->n_cigar==0?sc->F:sc->T);
+	        break;
+		}
+	case OP_SAM_CIGAR_STR:
+		{
+		int i;
+		pointer p_cigar;
+		kstring_t str = { 0, 0, NULL };
+		pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	bam_hdr_t *h  = bam1value(x).header;
+	     	bam1_t *b = bam1value(x).rec;
+	     	bam1_core_t *c = &b->core;
+	     	  
+	     	if (c->tid <= 0 || c->n_cigar==0) s_return(sc,sc->NIL);
+	     	 uint32_t *cigar = bam_get_cigar(b);
+		for (i = 0; i < c->n_cigar; ++i) {
+		    kputw(bam_cigar_oplen(cigar[i]), &str);
+		    kputc(bam_cigar_opchr(cigar[i]), &str);
+		    }
+		p_cigar = mk_string(sc,str.s);
+		free(str.s);
+		s_return(sc, p_cigar);
+		break;
+		}
+	case OP_SAM_HAS_READSEQ:
+		{
+		pointer p_seq;
+		pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	bam_hdr_t *h  = bam1value(x).header;
+	     	bam1_t *b = bam1value(x).rec;
+	     	bam1_core_t *c = &b->core;
+	     	uint8_t *s = bam_get_seq(b);
+	        s_return(sc,s == NULL || c->l_qseq<=0?sc->F:sc->T);
+		break;
+		}
+	case OP_SAM_READQUAL:
+		{
+		int i;
+		pointer p_seq;
+		kstring_t str = { 0, 0, NULL };
+		pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	bam_hdr_t *h  = bam1value(x).header;
+	     	bam1_t *b = bam1value(x).rec;
+	     	bam1_core_t *c = &b->core;
+	     	uint8_t *s = bam_get_qual(b);
+	     	if(s == NULL || s[0]==0xff || c->l_qseq<=0) s_return(sc,sc->NIL);
+      		for (i = 0; i < c->l_qseq; ++i) kputc(s[i]+33, &str);
+      		p_seq = mk_string(sc,str.s);
+		free(str.s);
+		s_return(sc, p_seq);
+		break;
+		}
+	case OP_SAM_READSEQ:
+		{
+		int i;
+		pointer p_seq;
+		kstring_t str = { 0, 0, NULL };
+		pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	bam_hdr_t *h  = bam1value(x).header;
+	     	bam1_t *b = bam1value(x).rec;
+	     	bam1_core_t *c = &b->core;
+	     	uint8_t *s = bam_get_seq(b);
+	     	if(s == NULL || c->l_qseq<=0) s_return(sc,sc->NIL);
+      		for (i = 0; i < c->l_qseq; ++i) kputc("=ACMGRSVTWYHKDBN"[bam_seqi(s, i)], &str);
+      		p_seq = mk_string(sc,str.s);
+		free(str.s);
+		s_return(sc, p_seq);
+		break;
+		}
+	default: 
+	  {
           snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal extended operator", sc->op);
           Error_0(sc,sc->strbuff);
           break;
