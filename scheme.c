@@ -5366,7 +5366,7 @@ int main(int argc,char** argv) {
     	{
         switch (c)
 		{
-		   case 'b': out_format = "b"; break;
+		   case 'b': /*out_format = "b" */; break;
 		    case 'f': script_file = optarg; break;
 		    case 'o':fn_out = optarg; break;
 		    case '?': usage();
