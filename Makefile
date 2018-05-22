@@ -70,7 +70,7 @@ endef
 CFLAGS = $(PLATFORM_CFLAGS) -I$(HSTLIB) -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0 -DTINYSCHEME_EXTENDED=1 -DSTANDALONE=0
 APPNAME=scheme
 
-OBJS = $(addsuffix .$(Osuf),$(APPNAME) dynload)
+OBJS = $(addsuffix .$(Osuf),$(APPNAME) dynload init_scm_str)
 
 LIBTARGET = $(addsuffix .$(SOsuf),$(LIBPREFIX)tiny$(APPNAME))
 STATICLIBTARGET = $(addsuffix .$(LIBsuf),$(LIBPREFIX)tiny$(APPNAME))
@@ -85,6 +85,7 @@ test-bam: $(addsuffix $(EXE_EXT),$(APPNAME))
 	$(EXEC_APP) -f test01.scm ../jvarkit-git/src/test/resources/S1.bam
 	$(EXEC_APP) -f test02.scm ../jvarkit-git/src/test/resources/S1.bam
 	$(EXEC_APP) -f test03.scm ../jvarkit-git/src/test/resources/S1.bam
+	$(EXEC_APP) -f test04.scm ../jvarkit-git/src/test/resources/S1.bam
 
 test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))
 	echo '(display "AAA\n")' | $(EXEC_APP)  | grep AAA
@@ -111,10 +112,17 @@ $(STATICLIBTARGET): $(OBJS)
 $(OBJS): scheme.h scheme-private.h opdefines.h sam_scm.h
 $(addsuffix $(Osuf),dynload): dynload.h
 
+
+init_scm_str.c : init.scm
+	echo 'const char* init_scm_str = "" ' > $@
+	grep -v '^;' $< | sed -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/"/' >> $@
+	echo '"";' >> $@
+
+
 clean:
 	$(RM) $(OBJS) $(LIBTARGET) $(STATICLIBTARGET) $(addsuffix $(EXE_EXT),$(APPNAME))
 	$(RM) tinyscheme.ilk tinyscheme.map tinyscheme.pdb tinyscheme.exp
-	$(RM) scheme.ilk scheme.map scheme.pdb scheme.lib scheme.exp
+	$(RM) scheme.ilk scheme.map scheme.pdb scheme.lib scheme.exp init_scm_str.c
 	$(RM) *~
 
 

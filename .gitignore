@@ -3,4 +3,4 @@
 *.so
 scheme
 *~
-
+init_scm_str.c

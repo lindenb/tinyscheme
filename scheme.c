@@ -4585,6 +4585,17 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		     }
 	     	 break;
 	     	 }
+	 case OP_SAM_READ_NAME:
+	 	{
+	 	pointer x = car(sc->args);
+	     	if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	bam1_t *b = bam1value(x).rec;
+	     	s_return(sc, mk_string(sc,bam_get_qname(b)));
+	 	}   	 
+	  
 	default: {
           snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal extended operator", sc->op);
           Error_0(sc,sc->strbuff);
@@ -5336,6 +5347,7 @@ typedef struct priv_sam_scm_filter
 	} priv_sam_scm_filter;
 
 static priv_sam_scm_filter* priv_sam_scm_filter_init() {
+	extern const char* init_scm_str;
 	priv_sam_scm_filter* ctx =(priv_sam_scm_filter*)malloc(sizeof(priv_sam_scm_filter));
 	scheme* sc = &(ctx->sc);
 	if(!scheme_init(sc)) {
@@ -5344,6 +5356,7 @@ static priv_sam_scm_filter* priv_sam_scm_filter_init() {
   		}
  	scheme_set_input_port_file(sc, stdin);
   	scheme_set_output_port_file(sc, stdout);
+  	scheme_load_string(sc,init_scm_str);
 	return ctx;
 	}
 
@@ -5423,6 +5436,7 @@ int main(int argc,char** argv) {
  htsFormat infmt;
  htsFormat outfmt;
  bam_hdr_t *header = NULL;
+ 
  
  struct option loptions[] =
     {

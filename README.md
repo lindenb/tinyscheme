@@ -7,6 +7,7 @@ Fork of tinyscheme http://tinyscheme.sourceforge.net/ by Dimitrios Souflis , Kev
 
 `(sam-contig b)` => returns the reference name the read `b` or `NIL`
 
+`(sam-read-name b)` => returns the name the read `b`
 
 ## Extended functions
 
