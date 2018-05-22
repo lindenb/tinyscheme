@@ -4633,6 +4633,35 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	        s_return(sc,c->tid <= 0 || c->n_cigar==0?sc->F:sc->T);
 	        break;
 		}
+	case OP_SAM_CIGAR_LIST:
+		{
+		int i;
+		pointer head = sc->NIL;
+		pointer x = car(sc->args);
+	     	 if(!is_bam1data(x)) {
+	     	 	fprintf(stderr,"not a bam data\n");
+	     	 	exit(-1);
+	     	 	}
+	     	bam_hdr_t *h  = bam1value(x).header;
+	     	bam1_t *b = bam1value(x).rec;
+	     	bam1_core_t *c = &b->core;
+	     	
+	     	if (c->tid <= 0 || c->n_cigar==0) return head;
+	     	
+	     	uint32_t *cigar = bam_get_cigar(b);
+		for (i = 0; i < c->n_cigar; ++i) {
+		    point elt;
+		    
+		    //kputw(bam_cigar_oplen(cigar[i]), &str);
+		    //kputc(bam_cigar_opchr(cigar[i]), &str);
+		    
+		    head = cons(sc , elt , head)
+		    }
+	     	
+	     
+	     	
+		break;
+		}
 	case OP_SAM_CIGAR_STR:
 		{
 		int i;
