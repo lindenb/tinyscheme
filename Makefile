@@ -82,7 +82,7 @@ all: test $(LIBTARGET) $(STATICLIBTARGET)
 test : test-bam
 
 test-bam: $(addsuffix $(EXE_EXT),$(APPNAME))
-	$(EXEC_APP) -f jeter.scm ../jvarkit-git/src/test/resources/S1.bam | file - 
+	$(EXEC_APP) -f test01.scm ../jvarkit-git/src/test/resources/S1.bam
 
 test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))
 	echo '(display "AAA\n")' | $(EXEC_APP)  | grep AAA

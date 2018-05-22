@@ -185,6 +185,8 @@ INTERFACE INLINE int is_string(pointer p)     { return (type(p)==T_STRING); }
 #define strlength(p)        ((p)->_object._string._length)
 
 
+
+
 INTERFACE static int is_list(scheme *sc, pointer p);
 INTERFACE INLINE int is_vector(pointer p)    { return (type(p)==T_VECTOR); }
 INTERFACE static void fill_vector(pointer vec, pointer obj);
@@ -257,8 +259,8 @@ INTERFACE INLINE int is_environment(pointer p) { return (type(p)==T_ENVIRONMENT)
 
 
 
-INTERFACE INLINE int is_samdata(pointer p)  { return (type(p)==T_SAMDATA); }
-
+INTERFACE INLINE int is_bam1data(pointer p)  { return (type(p)==T_SAMDATA); }
+#define bam1value(p) ((p)->_object.hts)
 
 
 #define is_atom(p)       (typeflag(p)&T_ATOM)
@@ -1346,7 +1348,7 @@ static void finalize_cell(scheme *sc, pointer a) {
   } 
   /** BEGIN CUSTOM DESTRUCTORS */
   
-  else if(is_samdata(a)) {
+  else if(is_bam1data(a)) {
     
   } 
   
@@ -2061,7 +2063,7 @@ static void atom2str(scheme *sc, pointer l, int f, char **pp, int *plen) {
      } 
      /** BEGIN CUSTOM TOSTRING */
      
-     else if (is_samdata(l)) {
+     else if (is_bam1data(l)) {
           p = "#<SAMDATA>";
      } 
      
@@ -5270,9 +5272,23 @@ int main(int argc, char **argv) {
 
 #else
 
+#define tinyscheme_list3(sc , a , b , c) cons((sc) , (a) , cons((sc) , (b) , cons((sc) , (c) , (sc)->NIL)))
+#define tinyscheme_list2(sc , a , b ) cons((sc) , (a) , cons((sc) , (b) , (sc)->NIL))
+
+static pointer mk_bam1(scheme *sc, bam_hdr_t *header,bam1_t *b)
+	{
+	pointer x = get_cell(sc, sc->NIL, sc->NIL);
+	typeflag(x) = T_SAMDATA|T_ATOM;
+	bam1value(x).type = 0;
+	bam1value(x).header = header;
+	bam1value(x).rec = b;
+	return x;
+	}
+
 typedef struct priv_sam_scm_filter
 	{
 	scheme sc;
+	pointer filter_symbol;
 	} priv_sam_scm_filter;
 
 static priv_sam_scm_filter* priv_sam_scm_filter_init() {
@@ -5303,6 +5319,8 @@ sam_scm_filter sam_scm_filter_from_file(const char* fname) {
   	scheme_load_named_file(&(ctx->sc),in,fname);
 	fclose(in);
 	
+	ctx->filter_symbol = mk_symbol(&(ctx->sc),"accept-read");
+	
 	return (sam_scm_filter)ctx;
 	}
 
@@ -5314,11 +5332,23 @@ void sam_scm_filter_destroy(sam_scm_filter filter) {
 	free(ctx);
 	}
 
-int sam_scm_filter_accept(sam_scm_filter filter,const bam_hdr_t *header,const bam1_t* rec)
+int sam_scm_filter_accept(sam_scm_filter filter, bam_hdr_t *header, bam1_t* rec)
 	{
+	scheme *sc;
+	pointer p_bam1 , p_return;
+	
 	priv_sam_scm_filter* ctx  = (priv_sam_scm_filter*)filter;
 	if(ctx==NULL) return 1;
-	return 1;
+	sc = &(ctx->sc);
+	
+	p_bam1 = mk_bam1(sc,header,rec);
+	assert(p_bam1!=0);
+	
+        p_return = scheme_eval(sc, tinyscheme_list2(sc,ctx->filter_symbol,p_bam1) ); 
+	if(is_true(p_return)) {
+	     return 1;
+	     }
+	return 0;
 	}
 
 
@@ -5346,8 +5376,8 @@ int main(int argc,char** argv) {
  int c;
  sam_scm_filter filter = NULL;
  bam1_t *b = NULL;
- const htsFormat infmt;
-  const htsFormat outfmt;
+ htsFormat infmt;
+ htsFormat outfmt;
  bam_hdr_t *header = NULL;
  
  struct option loptions[] =
@@ -5358,7 +5388,8 @@ int main(int argc,char** argv) {
         {NULL,0,NULL,0}
     };
 
-
+   memset((void*)&infmt, 0, sizeof(htsFormat));
+   memset((void*)&outfmt, 0, sizeof(htsFormat));
    strcpy(out_mode, "w");
      
     
@@ -5385,43 +5416,45 @@ int main(int argc,char** argv) {
     
     filter = sam_scm_filter_from_file(script_file);
     if(filter == NULL ) {
-    	fprintf(stderr,"Cannot compile %s\n",script_file);
+    	fprintf(stderr,"Cannot compile script file \"%s\".\n",script_file);
     	return EXIT_FAILURE;
     	}
     
-    char *fname = NULL;
     if ( optind ==argc )
        {
         if ( !isatty(fileno((FILE *)stdin)) )
         	{
-        	fname = "-";  // reading from stdin
+        	fn_in = "-";  // reading from stdin
         	}
         else
         	{
-        	fprintf(stderr,"input is missing");
+        	fprintf(stderr,"SAM/BAM input is missing\n");
 		exit(EXIT_FAILURE);
         	}
         }
     else if(optind+1==argc) {
-    	fname = argv[optind];
+    	fn_in = argv[optind];
 	}
    else
    	{
-   	fprintf(stderr,"Illegal number of arguments.");
+   	fprintf(stderr,"Illegal number of arguments.\n");
 	exit(EXIT_FAILURE);
    	}
         // setup output
-   
-     if ((in = sam_open_format(fn_in, "r",&infmt)) == 0) {
-       fprintf(stderr, "failed to open \"%s\" for reading", fn_in);
+    
+
+    
+     if ((in = sam_open_format(fn_in, "r",NULL)) == 0) {
+       fprintf(stderr, "failed to open \"%s\" for reading\n", (fn_in==NULL?"<input>":fn_in));
           return EXIT_FAILURE;
    	 }
-	if ((header = sam_hdr_read(in)) == 0) {
-        fprintf(stderr, "[main_samview] fail to read the header from \"%s\".\n", fn_in);
+     
+     if ((header = sam_hdr_read(in)) == 0) {
+        fprintf(stderr, "[main_samview] fail to read the header from \"%s\".\n",  (fn_in==NULL?"<input>":fn_in) );
         return EXIT_FAILURE;
-    }
+        }
 
- if ((out = sam_open_format(fn_out? fn_out : "-", out_mode, &outfmt)) == 0) {
+ if ((out = sam_open_format(fn_out!=NULL? fn_out : "-", out_mode, &outfmt)) == 0) {
              fprintf(stderr,"failed to open \"%s\" for writing", fn_out? fn_out : "standard output");
              return EXIT_FAILURE;
         }
@@ -5434,6 +5467,7 @@ if (sam_hdr_write(out, header) != 0) {
 
    b = bam_init1();
    while ((c = sam_read1(in, header, b)) >= 0) { // read one alignment from `in'
+   	   
             if (!sam_scm_filter_accept(filter,header, b)) continue;
             if (sam_write1(out, header, b) < 0) {
             	fprintf(stderr, "I/O error\n");
