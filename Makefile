@@ -2,7 +2,8 @@
 # Time-stamp: <2002-06-24 14:13:27 gildea>
 SHELL:=/bin/bash
 
-HSTLIB?=../htslib
+
+HSTLIB ?=../htslib
 
 # Windows/2000
 #CC = cl -nologo
@@ -35,7 +36,7 @@ AR= ar crs
 LD = gcc
 LDFLAGS = -L$(HSTLIB) -shared
 DEBUG=-g -Wno-char-subscripts -O
-SYS_LIBS= -ldl -lm -lhts
+SYS_LIBS= -ldl -lm -lz -lhts
 PLATFORM_CFLAGS= 
 
 # Cygwin
@@ -92,6 +93,7 @@ test-bam: $(addsuffix $(EXE_EXT),$(APPNAME))
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (and (sam-has-cigar x) (string=? (sam-cigar-string x) "62M8S")))') ../jvarkit-git/src/test/resources/S1.bam
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (string=? (sam-read-qual x) "2222222222222222222222222222222222222222222222222222222222222222222222"))') ../jvarkit-git/src/test/resources/S1.bam
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (string=? (sam-read-seq x) "AAGTCGCAATGCAATTGTTCGAAGATTTGTAGGTCTAACCTGTGAGGTCACTAGGGAGCTCCCCACTCCC"))') ../jvarkit-git/src/test/resources/S1.bam
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-has-flag x 16))') ../jvarkit-git/src/test/resources/S1.bam
 
 
 
