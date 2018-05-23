@@ -4623,16 +4623,13 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	     	if (c->tid <= 0 || c->n_cigar==0) return head;
 	     	
 	     	uint32_t *cigar = bam_get_cigar(b);
-		for (i = 0; i < c->n_cigar; ++i) {
+		for (i = (int)(c->n_cigar) -1; i>=0; --i) {
 		    pointer cigar_len = mk_integer(sc,(int)bam_cigar_oplen(cigar[i]));
 		    pointer cigar_op = mk_character(sc,(char)bam_cigar_opchr(cigar[i]));
 		    
-		    
-		    
-		    pointer elt = cons((sc) , cigar_len , cigar_op);
+		    pointer elt = cons((sc) , cigar_len , cons(sc,cigar_op,sc->NIL) );
 		    head = cons(sc , elt,head );
 		    }
-	     	
 	     	s_return(sc, head);
 		break;
 		}
@@ -5524,6 +5521,10 @@ int sam_scm_filter_accept(sam_scm_filter filter, bam_hdr_t *header, bam1_t* rec)
 	if(is_true(p_return)) {
 	     return 1;
 	     }
+	if(sc->F != p_return)
+		{
+		fprintf(stderr,"## atom returned is not a boolean.\n");
+		}
 	return 0;
 	}
 
@@ -5644,8 +5645,9 @@ if (sam_hdr_write(out, header) != 0) {
 
    b = bam_init1();
    while ((c = sam_read1(in, header, b)) >= 0) { // read one alignment from `in'
-   	   
+   	    
             if (!sam_scm_filter_accept(filter,header, b)) continue;
+
             if (sam_write1(out, header, b) < 0) {
             	fprintf(stderr, "I/O error\n");
                 return EXIT_FAILURE;
