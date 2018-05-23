@@ -4605,7 +4605,7 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	case OP_SAM_HAS_CIGAR:
 		{
 		s_retbool(c->tid >= 0 && c->n_cigar>0);
-	    break;
+	    	break;
 		}
 	case OP_SAM_CIGAR_LIST:
 		{
@@ -4624,16 +4624,16 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	     	
 	     	uint32_t *cigar = bam_get_cigar(b);
 		for (i = 0; i < c->n_cigar; ++i) {
-		    point elt;
+		    pointer cigar_len = mk_integer(sc,(int)bam_cigar_oplen(cigar[i]));
+		    pointer cigar_op = mk_character(sc,(char)bam_cigar_opchr(cigar[i]));
 		    
-		    //kputw(bam_cigar_oplen(cigar[i]), &str);
-		    //kputc(bam_cigar_opchr(cigar[i]), &str);
 		    
-		    head = cons(sc , elt , head)
+		    
+		    pointer elt = cons((sc) , cigar_len , cigar_op);
+		    head = cons(sc , elt,head );
 		    }
 	     	
-	     
-	     	
+	     	s_return(sc, head);
 		break;
 		}
 	case OP_SAM_CIGAR_STR:
@@ -4677,11 +4677,41 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		pointer p_seq;
 		kstring_t str = { 0, 0, NULL };
 		uint8_t *s = bam_get_seq(b);
-	    if(s == NULL || c->l_qseq<=0) s_return(sc,sc->NIL);
-      	for (i = 0; i < c->l_qseq; ++i) kputc("=ACMGRSVTWYHKDBN"[bam_seqi(s, i)], &str);
-      	p_seq = mk_string(sc,str.s);
+		if(s == NULL || c->l_qseq<=0) s_return(sc,sc->NIL);
+	      	for (i = 0; i < c->l_qseq; ++i) kputc("=ACMGRSVTWYHKDBN"[bam_seqi(s, i)], &str);
+	      	p_seq = mk_string(sc,str.s);
 		free(str.s);
 		s_return(sc, p_seq);
+		break;
+		}
+	case OP_SAM_IS_PAIRED:
+		{
+		s_retbool(( c->flag & BAM_FPAIRED));
+		break;
+		}
+	case OP_SAM_IS_PROPER_PAIR:
+		{
+		s_retbool(( c->flag & BAM_FPROPER_PAIR));
+		break;
+		}
+	case OP_SAM_READ_UNMAPPED:
+		{
+		s_retbool(( c->flag & BAM_FUNMAP));
+		break;
+		}
+	case OP_SAM_MATE_UNMAPPED:
+		{
+		s_retbool(( c->flag & BAM_FMUNMAP));
+		break;
+		}
+	case OP_SAM_READ_REVERSE_STRAND:
+		{
+		s_retbool(( c->flag & BAM_FREVERSE));
+		break;
+		}
+	case OP_SAM_MATE_REVERSE_STRAND:
+		{
+		s_retbool(( c->flag & BAM_FMREVERSE));
 		break;
 		}
 	default: 
@@ -5444,7 +5474,7 @@ static priv_sam_scm_filter* priv_sam_scm_filter_init() {
     		return NULL;
   		}
  	scheme_set_input_port_file(sc, stdin);
-  	scheme_set_output_port_file(sc, stdout);
+  	scheme_set_output_port_file(sc, stderr);
   	scheme_load_string(sc,init_scm_str);
 	return ctx;
 	}
