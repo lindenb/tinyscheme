@@ -100,7 +100,7 @@ test-bam: $(addsuffix $(EXE_EXT),$(APPNAME))
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-read-unmapped? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-read-reverse-strand? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-mate-reverse-strand? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (string=? (sam-rg-id x ) "S1"))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
 
 test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))
 	echo '(display "AAA\n")' | $(EXEC_APP)  | grep AAA

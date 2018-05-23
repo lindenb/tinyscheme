@@ -4620,7 +4620,7 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	     	bam1_t *b = bam1value(x).rec;
 	     	bam1_core_t *c = &b->core;
 	     	
-	     	if (c->tid <= 0 || c->n_cigar==0) return head;
+	     	if (c->tid < 0 || c->n_cigar==0) return head;
 	     	
 	     	uint32_t *cigar = bam_get_cigar(b);
 		for (i = (int)(c->n_cigar) -1; i>=0; --i) {
@@ -4680,6 +4680,11 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		free(str.s);
 		s_return(sc, p_seq);
 		break;
+		}
+	case OP_SAM_RG_ID:
+		{
+		uint8_t *rg = bam_aux_get(b, "RG");
+		s_return(sc, rg ? mk_string(sc,(const char*)(rg+1)):sc->NIL);
 		}
 	case OP_SAM_IS_PAIRED:
 		{

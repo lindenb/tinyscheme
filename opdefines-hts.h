@@ -16,3 +16,5 @@ _OP_DEF(opexe_sam, "sam-read-unmapped?",       1,  1,   TST_ANY,                
 _OP_DEF(opexe_sam, "sam-mate-unmapped?",       1,  1,   TST_ANY,                         OP_SAM_MATE_UNMAPPED     )
 _OP_DEF(opexe_sam, "sam-read-reverse-strand?",       1,  1,   TST_ANY,                         OP_SAM_READ_REVERSE_STRAND     )
 _OP_DEF(opexe_sam, "sam-mate-reverse-strand?",       1,  1,   TST_ANY,                         OP_SAM_MATE_REVERSE_STRAND     )
+_OP_DEF(opexe_sam, "sam-rg-id",1,  1,   TST_ANY,                         OP_SAM_RG_ID     )
+
