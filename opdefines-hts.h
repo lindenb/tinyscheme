@@ -2,6 +2,7 @@ _OP_DEF(opexe_sam, "sam-contig",       1,  1,   TST_ANY,                        
 _OP_DEF(opexe_sam, "sam-tid",       1,  1,   TST_ANY,                                  OP_SAM_TID      )
 _OP_DEF(opexe_sam, "sam-read-name",       1,  1,   TST_ANY,                            OP_SAM_READ_NAME      )
 _OP_DEF(opexe_sam, "sam-flag",       1,  1,   TST_ANY,                                 OP_SAM_FLAG      )
+_OP_DEF(opexe_sam, "sam-has-flag",       1,  1,   TST_ANY TST_INTEGER,                 OP_SAM_HAS_FLAG      )
 _OP_DEF(opexe_sam, "sam-mapq",       1,  1,   TST_ANY,                                 OP_SAM_QUAL      )
 _OP_DEF(opexe_sam, "sam-has-cigar",       1,  1,   TST_ANY,                            OP_SAM_HAS_CIGAR      )
 _OP_DEF(opexe_sam, "sam-cigar-string",       1,  1,   TST_ANY,                         OP_SAM_CIGAR_STR      )

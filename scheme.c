@@ -4551,87 +4551,61 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
 #endif
 
 
+
 static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
+	pointer p_sam = car(sc->args);
+ 	 if(!is_bam1data(p_sam)) {
+ 	 	fprintf(stderr,"not a bam data\n");
+ 	 	exit(EXIT_FAILURE);
+ 	 	}
+ 	bam_hdr_t *h  = bam1value(p_sam).header;
+ 	bam1_t *b = bam1value(p_sam).rec;
+	bam1_core_t *c = &b->core;
+
+
 	switch (op) {
 	case OP_SAM_TID:
 	     	 {
-	     	 pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-
-	     	 bam1_t *b = bam1value(x).rec;
-	     	 bam1_core_t *c = &b->core;
 	     	 s_return(sc, mk_integer(sc,c->tid));	     	
 	     	 break;
 	     	 }
 	case OP_SAM_CONTIG:
 	     	 {
-	     	 pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	 bam_hdr_t *h  = bam1value(x).header;
-	     	 bam1_t *b = bam1value(x).rec;
-	     	 bam1_core_t *c = &b->core;
-	     	  
-	     	 if (c->tid >= 0) { // chr
-        	     s_return(sc, mk_string(sc,h->target_name[c->tid] ));
+	     	 if (c->tid >= 0) {
+        	     	s_return(sc, mk_string(sc,h->target_name[c->tid] ));
                      }
-		else
-		     {
-		     s_return(sc,sc->NIL);
-		     }
+			else
+				 {
+				 s_return(sc,sc->NIL);
+				 }
 	     	 break;
 	     	 }
 	 case OP_SAM_READ_NAME:
 	 	{
-	 	pointer x = car(sc->args);
-	     	if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	bam1_t *b = bam1value(x).rec;
-	     	s_return(sc, mk_string(sc,bam_get_qname(b)));
-	 	}   	 
+	 	s_return(sc, mk_string(sc,bam_get_qname(b)));
+	 	break;
+	 	}
+	case OP_SAM_HAS_FLAG:
+		{
+		int flag = c->flag;
+		int mask = (int) ivalue(car(cdr(sc->args)));
+		s_retbool((flag & mask));
+		break;
+		}	 
 	case OP_SAM_FLAG:
 		{
-		pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	bam1_t *b = bam1value(x).rec;
-	     	bam1_core_t *c = &b->core;
-	     	s_return(sc, mk_integer(sc,c->flag));
+		s_return(sc, mk_integer(sc,c->flag));
 		break;
 		}
 	case OP_SAM_QUAL:
 		{
-		pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	bam1_t *b = bam1value(x).rec;
-	     	bam1_core_t *c = &b->core;
-	     	s_return(sc, mk_integer(sc,c->qual));
+		s_return(sc, mk_integer(sc,c->qual));
 		break;
 		}
 	case OP_SAM_HAS_CIGAR:
 		{
-		pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	bam1_t *b = bam1value(x).rec;
-	     	bam1_core_t *c = &b->core;
-	     	
-	        s_return(sc,c->tid <= 0 || c->n_cigar==0?sc->F:sc->T);
-	        break;
+		s_retbool(c->tid >= 0 && c->n_cigar>0);
+	    break;
 		}
 	case OP_SAM_CIGAR_LIST:
 		{
@@ -4667,16 +4641,7 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		int i;
 		pointer p_cigar;
 		kstring_t str = { 0, 0, NULL };
-		pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	bam_hdr_t *h  = bam1value(x).header;
-	     	bam1_t *b = bam1value(x).rec;
-	     	bam1_core_t *c = &b->core;
-	     	  
-	     	if (c->tid <= 0 || c->n_cigar==0) s_return(sc,sc->NIL);
+		if (c->tid < 0 || c->n_cigar==0) s_return(sc,sc->NIL);
 	     	 uint32_t *cigar = bam_get_cigar(b);
 		for (i = 0; i < c->n_cigar; ++i) {
 		    kputw(bam_cigar_oplen(cigar[i]), &str);
@@ -4689,17 +4654,8 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		}
 	case OP_SAM_HAS_READSEQ:
 		{
-		pointer p_seq;
-		pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	bam_hdr_t *h  = bam1value(x).header;
-	     	bam1_t *b = bam1value(x).rec;
-	     	bam1_core_t *c = &b->core;
-	     	uint8_t *s = bam_get_seq(b);
-	        s_return(sc,s == NULL || c->l_qseq<=0?sc->F:sc->T);
+		uint8_t *s = bam_get_seq(b);
+	    s_return(sc,s == NULL || c->l_qseq<=0?sc->F:sc->T);
 		break;
 		}
 	case OP_SAM_READQUAL:
@@ -4707,18 +4663,10 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		int i;
 		pointer p_seq;
 		kstring_t str = { 0, 0, NULL };
-		pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	bam_hdr_t *h  = bam1value(x).header;
-	     	bam1_t *b = bam1value(x).rec;
-	     	bam1_core_t *c = &b->core;
-	     	uint8_t *s = bam_get_qual(b);
-	     	if(s == NULL || s[0]==0xff || c->l_qseq<=0) s_return(sc,sc->NIL);
-      		for (i = 0; i < c->l_qseq; ++i) kputc(s[i]+33, &str);
-      		p_seq = mk_string(sc,str.s);
+		uint8_t *s = bam_get_qual(b);
+	    if(s == NULL || s[0]==0xff || c->l_qseq<=0) s_return(sc,sc->NIL);
+      	for (i = 0; i < c->l_qseq; ++i) kputc(s[i]+33, &str);
+      	p_seq = mk_string(sc,str.s);
 		free(str.s);
 		s_return(sc, p_seq);
 		break;
@@ -4728,18 +4676,10 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		int i;
 		pointer p_seq;
 		kstring_t str = { 0, 0, NULL };
-		pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	bam_hdr_t *h  = bam1value(x).header;
-	     	bam1_t *b = bam1value(x).rec;
-	     	bam1_core_t *c = &b->core;
-	     	uint8_t *s = bam_get_seq(b);
-	     	if(s == NULL || c->l_qseq<=0) s_return(sc,sc->NIL);
-      		for (i = 0; i < c->l_qseq; ++i) kputc("=ACMGRSVTWYHKDBN"[bam_seqi(s, i)], &str);
-      		p_seq = mk_string(sc,str.s);
+		uint8_t *s = bam_get_seq(b);
+	    if(s == NULL || c->l_qseq<=0) s_return(sc,sc->NIL);
+      	for (i = 0; i < c->l_qseq; ++i) kputc("=ACMGRSVTWYHKDBN"[bam_seqi(s, i)], &str);
+      	p_seq = mk_string(sc,str.s);
 		free(str.s);
 		s_return(sc, p_seq);
 		break;
