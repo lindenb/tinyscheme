@@ -5740,7 +5740,7 @@ static priv_sam_scm_filter* priv_sam_scm_filter_init() {
   	scheme_set_output_port_file(sc, stderr);
 	assert(strstr(init_scm_str,"filter-list")!=NULL);
   	scheme_load_string(sc,init_scm_str);
-	if( sc->retcode!=0)
+	if( sc->retcode != 0 )
 		{
 		free(ctx);
 		fprintf(stderr,"Internal Error: Cannot initialize Init.scm\n");
@@ -5755,7 +5755,6 @@ sam_scm_filter sam_scm_filter_from_file(const char* fname) {
 	if(fname==NULL) return NULL;
 	ctx = priv_sam_scm_filter_init();
 	if(ctx == NULL) return NULL;
-	
 	in = fopen(fname,"r");
   	if(in==NULL) {
 	  	fprintf(stderr,"[scm::init] cannot open user script %s . %s\n",fname,strerror(errno));
@@ -5769,11 +5768,24 @@ sam_scm_filter sam_scm_filter_from_file(const char* fname) {
                 fprintf(stderr,"User Error cannot parse scm file %s\n",fname);
                 return NULL;
                 }
-
 	fclose(in);
-	
 	ctx->filter_symbol = mk_symbol(&(ctx->sc),"accept-read");
-	
+	return (sam_scm_filter)ctx;
+	}
+
+sam_scm_filter sam_scm_filter_from_string(const char* expr) {
+	priv_sam_scm_filter* ctx  = NULL;
+	if(expr==NULL) return NULL;
+	ctx = priv_sam_scm_filter_init();
+	if(ctx == NULL) return NULL;
+  	scheme_load_string(&(ctx->sc),expr);
+	if( ctx->sc.retcode!=0)
+                {
+                sam_scm_filter_destroy((sam_scm_filter)ctx);
+                fprintf(stderr,"User Error cannot parse scm file %s\n",expr);
+                return NULL;
+                }
+	ctx->filter_symbol = mk_symbol(&(ctx->sc),"accept-read");
 	return (sam_scm_filter)ctx;
 	}
 
@@ -5789,11 +5801,9 @@ int sam_scm_filter_accept(sam_scm_filter filter, bam_hdr_t *header, bam1_t* rec)
 	{
 	scheme *sc;
 	pointer p_bam1 , p_return;
-	
 	priv_sam_scm_filter* ctx  = (priv_sam_scm_filter*)filter;
 	if(ctx==NULL) return 1;
 	sc = &(ctx->sc);
-	
 	p_bam1 = mk_bam1(sc,header,rec);
 	assert(p_bam1!=0);
 	
@@ -5827,6 +5837,7 @@ int main(int argc,char** argv) {
  int ret = EXIT_SUCCESS;
  samFile *in = 0, *out = 0;
  char *script_file = NULL;
+ char *script_expr = NULL;
  char* fn_out = NULL;
  char* fn_in = NULL;
  char out_mode[5];
@@ -5841,6 +5852,7 @@ int main(int argc,char** argv) {
  struct option loptions[] =
     {
         {"script-file",no_argument,NULL,'f'},
+        {"script-expr",no_argument,NULL,'e'},
         {"output-type",required_argument,NULL,'O'},
         {"output-file",required_argument,NULL,'o'},
         {NULL,0,NULL,0}
@@ -5849,14 +5861,14 @@ int main(int argc,char** argv) {
    memset((void*)&infmt, 0, sizeof(htsFormat));
    memset((void*)&outfmt, 0, sizeof(htsFormat));
    strcpy(out_mode, "w");
-     
-    
-    while ((c = getopt_long(argc, argv, "f:o:O:b",loptions,NULL)) >= 0)
+
+    while ((c = getopt_long(argc, argv, "e:f:o:O:b",loptions,NULL)) >= 0)
     	{
         switch (c)
 		{
-		   case 'b': /*out_format = "b" */; break;
+		    case 'b': /*out_format = "b" */; break;
 		    case 'f': script_file = optarg; break;
+		    case 'e': script_expr = optarg; break;
 		    case 'o':fn_out = optarg; break;
 		    case '?': usage();
 		    default: {
@@ -5865,19 +5877,28 @@ int main(int argc,char** argv) {
 		        }
 		}
 	    }
-  
-  
-    if(script_file == NULL ) {
-    	fprintf(stderr,"use script missing!\n");
+    if(script_file == NULL && script_expr==NULL) {
+    	fprintf(stderr,"user script file/expression missing!\n");
     	return EXIT_FAILURE;
         }
-    
-    filter = sam_scm_filter_from_file(script_file);
-    if(filter == NULL ) {
-    	fprintf(stderr,"Cannot compile script file \"%s\".\n",script_file);
+    else if(script_file != NULL && script_expr!=NULL) {
+    	fprintf(stderr,"user script file/expression both defined.\n");
     	return EXIT_FAILURE;
-    	}
-    
+        }
+    else if(script_file != NULL) {
+    	filter = sam_scm_filter_from_file(script_file);
+	if( filter==NULL) {
+		fprintf(stderr,"Cannot read from file \"%s\".\n",script_file);
+		exit(EXIT_FAILURE);
+		}
+	}
+    else {
+    	filter = sam_scm_filter_from_string(script_expr);
+	if( filter==NULL) {
+		fprintf(stderr,"Cannot read from expression \"%s\".\n",script_expr);
+		exit(EXIT_FAILURE);
+		}
+	}
     if ( optind ==argc )
        {
         if ( !isatty(fileno((FILE *)stdin)) )
@@ -5899,14 +5920,10 @@ int main(int argc,char** argv) {
 	exit(EXIT_FAILURE);
    	}
         // setup output
-    
-
-    
      if ((in = sam_open_format(fn_in, "r",NULL)) == 0) {
        fprintf(stderr, "failed to open \"%s\" for reading\n", (fn_in==NULL?"<input>":fn_in));
           return EXIT_FAILURE;
    	 }
-     
      if ((header = sam_hdr_read(in)) == 0) {
         fprintf(stderr, "[main_samview] fail to read the header from \"%s\".\n",  (fn_in==NULL?"<input>":fn_in) );
         return EXIT_FAILURE;
