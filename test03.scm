@@ -1,1 +1,1 @@
-(define (accept-read x) (= (sam-tid x) 2))
+(define (accept-read x) (= (sam-read-tid x) 2))

@@ -4550,7 +4550,51 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
 
 #endif
 
+static pointer opexe_cigar(scheme *sc, enum scheme_opcodes op) {
+	pointer p_op = car(sc->args);
+	char cop;
+	 if(is_character(p_op)) {
+	    cop = toupper(charvalue(p_op));
+	 	}
+	 else if(is_string(p_op)) {
+	    cop = toupper(strvalue(p_op)[0]);
+	 	}
+ 	 else {
+ 	 	fprintf(stderr,"Cigar Operator is not a char\n");
+ 	 	exit(EXIT_FAILURE);
+ 	 	}
+ 	 
 
+	switch (op) {
+	case OP_CIGAROP_CONSUMMES_READ:
+	     	 {
+	     	 int ret=0;
+	     	 switch(cop)
+	     	 	{
+	     	 	case 'M': case '=' : case 'X': case 'I': case 'S': ret=1; break;
+	     	 	case 'D':case 'N': case 'H': case 'P': ret=0;break;
+	     	 	default:fprintf(stderr,"Bad cigar operator '%c'.\n",cop);
+	     	 	}
+	     	 s_retbool(ret);
+	     	 }
+	case OP_CIGAROP_CONSUMMES_REF:
+	     	 {
+	     	 int ret=0;
+	     	 switch(cop)
+	     	 	{
+	     	 	case 'M': case '=' : case 'X': case 'D': case 'N': ret=1; break;
+	     	 	case 'P': case 'I': case 'S': case 'H': ret=0;break;
+	     	 	default:fprintf(stderr,"Bad cigar operator '%c'.\n",cop);
+	     	 	}
+	     	 s_retbool(ret);
+	     	 }
+	default: {
+          snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal extended operator", sc->op);
+          Error_0(sc,sc->strbuff);
+          break;
+          }
+     	}
+    }
 
 static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	pointer p_sam = car(sc->args);
@@ -4573,6 +4617,22 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	     	 {
 	     	 if (c->tid >= 0) {
         	     	s_return(sc, mk_string(sc,h->target_name[c->tid] ));
+                     }
+			else
+				 {
+				 s_return(sc,sc->NIL);
+				 }
+	     	 break;
+	     	 }
+	case OP_SAM_MATE_TID:
+			{
+			s_return(sc, mk_integer(sc,c->mtid));	     	
+	     	break;
+			}
+	case OP_SAM_MATE_CONTIG:
+			{
+			if (c->mtid >= 0) {
+        	     	s_return(sc, mk_string(sc,h->target_name[c->mtid] ));
                      }
 			else
 				 {
@@ -4607,18 +4667,16 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		s_retbool(c->tid >= 0 && c->n_cigar>0);
 	    	break;
 		}
+	case OP_SAM_CIGAR_COUNT:
+		{
+		s_return(sc, mk_integer(sc,(int)c->n_cigar));
+		break;
+		}
 	case OP_SAM_CIGAR_LIST:
 		{
 		int i;
 		pointer head = sc->NIL;
-		pointer x = car(sc->args);
-	     	 if(!is_bam1data(x)) {
-	     	 	fprintf(stderr,"not a bam data\n");
-	     	 	exit(-1);
-	     	 	}
-	     	bam_hdr_t *h  = bam1value(x).header;
-	     	bam1_t *b = bam1value(x).rec;
-	     	bam1_core_t *c = &b->core;
+		
 	     	
 	     	if (c->tid < 0 || c->n_cigar==0) return head;
 	     	

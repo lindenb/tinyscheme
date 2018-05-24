@@ -1,1 +1,1 @@
-(define (accept-read x) (string=? (sam-contig x) "RF11"))
+(define (accept-read x) (string=? (sam-read-contig x) "RF11"))

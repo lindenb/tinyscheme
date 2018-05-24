@@ -3,9 +3,9 @@ Fork of tinyscheme http://tinyscheme.sourceforge.net/ by Dimitrios Souflis , Kev
 
 ## SAM function
 
-`(sam-tid b)` => returns the reference ID of the read `b`.
+`(sam-read-tid b)` => returns the reference ID of the read `b`.
 
-`(sam-contig b)` => returns the reference name the read `b` or `NIL`
+`(sam-read-contig b)` => returns the reference name the read `b` or `NIL`
 
 `(sam-read-name b)` => returns the name the read `b`
 

@@ -1,5 +1,8 @@
-_OP_DEF(opexe_sam, "sam-contig",       1,  1,   TST_ANY,                               OP_SAM_CONTIG      )
-_OP_DEF(opexe_sam, "sam-tid",       1,  1,   TST_ANY,                                  OP_SAM_TID      )
+_OP_DEF(opexe_cigar, "cigar-op-consumes-read-bases?",       1,  1,  TST_CHAR, OP_CIGAROP_CONSUMMES_READ)
+_OP_DEF(opexe_cigar, "cigar-op-consumes-reference-bases?",       1,  1,  TST_CHAR, OP_CIGAROP_CONSUMMES_REF)
+
+_OP_DEF(opexe_sam, "sam-read-contig",       1,  1,   TST_ANY,                               OP_SAM_CONTIG      )
+_OP_DEF(opexe_sam, "sam-read-tid",       1,  1,   TST_ANY,                                  OP_SAM_TID      )
 _OP_DEF(opexe_sam, "sam-read-name",       1,  1,   TST_ANY,                            OP_SAM_READ_NAME      )
 _OP_DEF(opexe_sam, "sam-flag",       1,  1,   TST_ANY,                                 OP_SAM_FLAG      )
 _OP_DEF(opexe_sam, "sam-has-flag?",       2,  2,   TST_ANY TST_INTEGER,                 OP_SAM_HAS_FLAG      )
@@ -17,4 +20,6 @@ _OP_DEF(opexe_sam, "sam-mate-unmapped?",       1,  1,   TST_ANY,                
 _OP_DEF(opexe_sam, "sam-read-reverse-strand?",       1,  1,   TST_ANY,                         OP_SAM_READ_REVERSE_STRAND     )
 _OP_DEF(opexe_sam, "sam-mate-reverse-strand?",       1,  1,   TST_ANY,                         OP_SAM_MATE_REVERSE_STRAND     )
 _OP_DEF(opexe_sam, "sam-rg-id",1,  1,   TST_ANY,                         OP_SAM_RG_ID     )
-
+_OP_DEF(opexe_sam, "sam-mate-contig",       1,  1,   TST_ANY,                               OP_SAM_MATE_CONTIG      )
+_OP_DEF(opexe_sam, "sam-mate-tid",       1,  1,   TST_ANY,                                  OP_SAM_MATE_TID      )
+_OP_DEF(opexe_sam, "sam-cigar-count",       1,  1,   TST_ANY,                                  OP_SAM_CIGAR_COUNT      )
