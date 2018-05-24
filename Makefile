@@ -95,12 +95,13 @@ test-bam: $(addsuffix $(EXE_EXT),$(APPNAME))
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (string=? (sam-read-seq x) "AAGTCGCAATGCAATTGTTCGAAGATTTGTAGGTCTAACCTGTGAGGTCACTAGGGAGCTCCCCACTCCC"))') ../jvarkit-git/src/test/resources/S1.bam|  head -n 20
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-has-flag? x 16))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (< (car (car (sam-cigar-list x ))) 70) )') ../jvarkit-git/src/test/resources/S1.bam |  head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-is-proper-pair? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-is-paired? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-proper-pair? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-paired? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-read-unmapped? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-read-reverse-strand? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-mate-reverse-strand? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
 	$(EXEC_APP) -f <(echo '(define (accept-read x) (string=? (sam-rg-id x ) "S1"))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (> (length (sam-attributes x )) 2))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
 
 test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))
 	echo '(display "AAA\n")' | $(EXEC_APP)  | grep AAA

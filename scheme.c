@@ -4551,6 +4551,17 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
 
 #endif
 
+
+#define tinyscheme_list3(sc , a , b , c) cons((sc) , (a) , cons((sc) , (b) , cons((sc) , (c) , (sc)->NIL)))
+#define tinyscheme_list2(sc , a , b ) cons((sc) , (a) , cons((sc) , (b) , (sc)->NIL))
+
+#define CONS(a,b) cons((sc),(a),(b))
+#define MAKE_LIST2(a,b) CONS(a,CONS(b,sc->NIL))
+#define MAKE_LIST3(a,b,c) CONS(a,MAKE_LIST2(b,c))
+#define MAKE_LIST4(a,b,c,d) CONS(a,MAKE_LIST3(b,c,d))
+#define MAKE_LIST5(a,b,c,d,e) CONS(a,MAKE_LIST4(b,c,d,e)))
+
+
 static pointer opexe_cigar(scheme *sc, enum scheme_opcodes op) {
 	pointer p_op = car(sc->args);
 	char cop;
@@ -4706,7 +4717,7 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		    pointer cigar_len = mk_integer(sc,(int)bam_cigar_oplen(cigar[i]));
 		    pointer cigar_op = mk_character(sc,(char)bam_cigar_opchr(cigar[i]));
 		    
-		    pointer elt = cons((sc) , cigar_len , cons(sc,cigar_op,sc->NIL) );
+		    pointer elt = MAKE_LIST2(cigar_len ,cigar_op);
 		    head = cons(sc , elt,head );
 		    }
 	     	s_return(sc, head);
@@ -4806,7 +4817,7 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 			
 			++s;
 
-#define MAKE_ATTRIBUTE p_attribute =cons(sc, p_attribute_id, cons(sc , p_attribute_type , cons(sc,p_attribute_val,sc->NIL) ))
+#define MAKE_ATTRIBUTE p_attribute = MAKE_LIST3(p_attribute_id,p_attribute_type ,p_attribute_val)
 
 			switch(type)
 				{
@@ -4893,7 +4904,7 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 TYPE* array=(TYPE*)s;\
 while(i>0) {\
 	pointer array_item = mk_integer(sc,(long)array[i-1]);\
-	array_content = cons(sc , array_content ,array_item );\
+	array_content = cons(sc , array_item,array_content );\
 	i--;\
 	};\
 s+= n*sizeof(TYPE);\
@@ -4904,9 +4915,9 @@ break;\
 #define CASE_INT_TYPE2(OP,TYPE,MODIFIER) case OP:{\
 TYPE* array=(TYPE*)s;\
 while(i>0) {\
-	TYPE v = (TYPE) MODIFIER(s);\
-	pointer array_item = mk_integer(sc,(long)array[i-1]);\
-	array_content = cons(sc , array_content ,array_item );\
+	uint8_t* p2= &s[(i-1)*sizeof(TYPE)];\
+	pointer array_item = mk_integer(sc,(long)MODIFIER(p2));\
+	array_content = cons(sc , array_item,array_content );\
 	i--;\
 	};\
 s+= n*sizeof(TYPE);\
@@ -4921,10 +4932,24 @@ break;\
 						CASE_INT_TYPE2('I',uint32_t,le_to_u32)
 						case 'f':
 							{
+							while(i>0) {
+								uint8_t* p2= &s[(i-1)*sizeof(float)];
+								pointer array_item = mk_real(sc,(double)le_to_float(p2));
+								array_content = cons(sc , array_item,array_content );
+								i--;
+								};
+							s+= n*sizeof(float);
 							break;
 							}
 						case 'd':
 							{
+							while(i>0) {
+								uint8_t* p2= &s[(i-1)*sizeof(double)];
+								pointer array_item = mk_real(sc,(double)le_to_double(p2));
+								array_content = cons(sc , array_item,array_content );
+								i--;
+								};
+							s+= n*sizeof(double);
 							break;
 							}
 						default:
@@ -4934,11 +4959,10 @@ break;\
 							break;
 							}
 						}
-					//p_array_item  cons(sc , p_array_item ,p_attribute_val )
 #undef CASE_INT_TYPE1
-#undef CASE_INT_TYPE2					 
+#undef CASE_INT_TYPE2			
 					
-					p_attribute_val = cons(sc , p_array_item ,p_attribute_val );
+					p_attribute = MAKE_LIST4(p_attribute_id,p_attribute_type,p_attribute_subtype,array_content);
 					break;
 					}
 				default: 
@@ -4950,7 +4974,7 @@ break;\
 				}
 			
 			
-		    	head = cons(sc , p_attribute ,head );
+		    	head = cons(sc,p_attribute ,head );
 			}
 		s_return(sc, head);
 		break;
@@ -5687,22 +5711,6 @@ int main(int argc, char **argv) {
 
 #else
 
-#define tinyscheme_list3(sc , a , b , c) cons((sc) , (a) , cons((sc) , (b) , cons((sc) , (c) , (sc)->NIL)))
-#define tinyscheme_list2(sc , a , b ) cons((sc) , (a) , cons((sc) , (b) , (sc)->NIL))
-
-static pointer make_list(scheme *sc,int n, pointer p)
-	{
-	pointer head= sc->NIL;
-	va_list args;
-    	va_start(args, p);
-	while (n > 0) {
-         pointer curr = va_arg(args, pointer);
-         head = cons(sc,head,curr);
-         --n;
-         }
-        va_end(args);
-        return head;
-	}
 
 static pointer mk_bam1(scheme *sc, bam_hdr_t *header,bam1_t *b)
 	{
