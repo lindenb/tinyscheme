@@ -714,3 +714,22 @@
             (else (error "cond-expand : unknown operator" (car condition)))))))
 
 (gc-verbose #f)
+
+;; 
+;;
+;; SAM things
+;;
+
+(define (filter-list lst predicate)
+  (cond ((null? lst) null)
+        ((predicate (car lst))
+         (cons (car lst) (filter-list (cdr lst) predicate)))
+        (else (filter-list  (cdr lst) predicate ))))
+
+;(define (sam-get-attribute rec attName) ( "
+
+;(define (sam-get-attribute rec attName)
+;	(let ((found (filter-list  (sam-attributes rec) (lambda (att) (string=? (car att) attName))) )
+;      (cond ((null? found) null )
+;          ((car found)))
+;)

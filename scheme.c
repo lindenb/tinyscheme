@@ -5738,7 +5738,14 @@ static priv_sam_scm_filter* priv_sam_scm_filter_init() {
   		}
  	scheme_set_input_port_file(sc, stdin);
   	scheme_set_output_port_file(sc, stderr);
+	assert(strstr(init_scm_str,"filter-list")!=NULL);
   	scheme_load_string(sc,init_scm_str);
+	if( sc->retcode!=0)
+		{
+		free(ctx);
+		fprintf(stderr,"Internal Error: Cannot initialize Init.scm\n");
+                return NULL;
+		}
 	return ctx;
 	}
 
@@ -5756,6 +5763,13 @@ sam_scm_filter sam_scm_filter_from_file(const char* fname) {
 	  	return NULL;
 	  	}
   	scheme_load_named_file(&(ctx->sc),in,fname);
+	if( ctx->sc.retcode!=0)
+                {
+                sam_scm_filter_destroy((sam_scm_filter)ctx);
+                fprintf(stderr,"User Error cannot parse scm file %s\n",fname);
+                return NULL;
+                }
+
 	fclose(in);
 	
 	ctx->filter_symbol = mk_symbol(&(ctx->sc),"accept-read");
