@@ -4640,6 +4640,21 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 				 }
 	     	 break;
 	     	 }
+	  case OP_SAM_READ_POS:
+			{
+			s_return(sc, mk_integer(sc,c->pos +1));	
+	     	break;
+	     	}
+	  case OP_SAM_MATE_POS:
+			{
+			s_return(sc, mk_integer(sc,c->mpos +1));	
+	     	break;
+	     	}
+	  case OP_SAM_READLEN:
+			{
+			s_return(sc, mk_integer(sc,c->l_qseq));	
+	     	break;
+	     	}
 	 case OP_SAM_READ_NAME:
 	 	{
 	 	s_return(sc, mk_string(sc,bam_get_qname(b)));
@@ -4670,6 +4685,11 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	case OP_SAM_CIGAR_COUNT:
 		{
 		s_return(sc, mk_integer(sc,(int)c->n_cigar));
+		break;
+		}
+	case OP_SAM_ISIZE:
+		{
+		s_return(sc, mk_integer(sc,(int)c->isize));
 		break;
 		}
 	case OP_SAM_CIGAR_LIST:

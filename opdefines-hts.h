@@ -22,4 +22,10 @@ _OP_DEF(opexe_sam, "sam-mate-reverse-strand?",       1,  1,   TST_ANY,          
 _OP_DEF(opexe_sam, "sam-rg-id",1,  1,   TST_ANY,                         OP_SAM_RG_ID     )
 _OP_DEF(opexe_sam, "sam-mate-contig",       1,  1,   TST_ANY,                               OP_SAM_MATE_CONTIG      )
 _OP_DEF(opexe_sam, "sam-mate-tid",       1,  1,   TST_ANY,                                  OP_SAM_MATE_TID      )
+_OP_DEF(opexe_sam, "sam-mate-pos",       1,  1,   TST_ANY,                                  OP_SAM_MATE_POS      )
+_OP_DEF(opexe_sam, "sam-read-pos",       1,  1,   TST_ANY,                                  OP_SAM_READ_POS      )
 _OP_DEF(opexe_sam, "sam-cigar-count",       1,  1,   TST_ANY,                                  OP_SAM_CIGAR_COUNT      )
+_OP_DEF(opexe_sam, "sam-insert-size",       1,  1,   TST_ANY,                                  OP_SAM_ISIZE      )
+_OP_DEF(opexe_sam, "sam-read-length",       1,  1,   TST_ANY,                             OP_SAM_READLEN     )
+
+
