@@ -28,6 +28,7 @@
 #endif
 
 #include <htslib/kstring.h>
+#include <htslib/hts_endian.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <limits.h>
@@ -4730,7 +4731,7 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 	case OP_SAM_HAS_READSEQ:
 		{
 		uint8_t *s = bam_get_seq(b);
-	    s_return(sc,s == NULL || c->l_qseq<=0?sc->F:sc->T);
+	    	s_return(sc,s == NULL || c->l_qseq<=0?sc->F:sc->T);
 		break;
 		}
 	case OP_SAM_READQUAL:
@@ -4739,9 +4740,9 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		pointer p_seq;
 		kstring_t str = { 0, 0, NULL };
 		uint8_t *s = bam_get_qual(b);
-	    if(s == NULL || s[0]==0xff || c->l_qseq<=0) s_return(sc,sc->NIL);
-      	for (i = 0; i < c->l_qseq; ++i) kputc(s[i]+33, &str);
-      	p_seq = mk_string(sc,str.s);
+	    	if(s == NULL || s[0]==0xff || c->l_qseq<=0) s_return(sc,sc->NIL);
+      		for (i = 0; i < c->l_qseq; ++i) kputc(s[i]+33, &str);
+      		p_seq = mk_string(sc,str.s);
 		free(str.s);
 		s_return(sc, p_seq);
 		break;
@@ -4764,34 +4765,194 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		uint8_t *rg = bam_aux_get(b, "RG");
 		s_return(sc, rg ? mk_string(sc,(const char*)(rg+1)):sc->NIL);
 		}
-	case OP_SAM_IS_PAIRED:
+#define CASE_FLAG(X,Y) case X:\
+	{\
+	s_retbool(( c->flag & Y));\
+	break;\
+	}
+	CASE_FLAG(OP_SAM_IS_PAIRED,BAM_FPAIRED)
+	CASE_FLAG(OP_SAM_IS_PROPER_PAIR,BAM_FPROPER_PAIR)
+	CASE_FLAG(OP_SAM_READ_UNMAPPED,BAM_FUNMAP)
+	CASE_FLAG(OP_SAM_MATE_UNMAPPED,BAM_FMUNMAP)
+	CASE_FLAG(OP_SAM_READ_REVERSE_STRAND,BAM_FREVERSE)
+	CASE_FLAG(OP_SAM_MATE_REVERSE_STRAND,BAM_FMREVERSE)
+	CASE_FLAG(OP_SAM_FREAD1,BAM_FREAD1)
+	CASE_FLAG(OP_SAM_FREAD2,BAM_FREAD2)
+	CASE_FLAG(OP_SAM_FSECONDARY,BAM_FSECONDARY)
+	CASE_FLAG(OP_SAM_FQCFAIL,BAM_FQCFAIL)
+	CASE_FLAG(OP_SAM_FDUP,BAM_FDUP)
+	CASE_FLAG(OP_SAM_FSUPPLEMENTARY,BAM_FSUPPLEMENTARY)
+#undef CASE_FLAG
+	case OP_SAM_AUX:
 		{
-		s_retbool(( c->flag & BAM_FPAIRED));
-		break;
-		}
-	case OP_SAM_IS_PROPER_PAIR:
-		{
-		s_retbool(( c->flag & BAM_FPROPER_PAIR));
-		break;
-		}
-	case OP_SAM_READ_UNMAPPED:
-		{
-		s_retbool(( c->flag & BAM_FUNMAP));
-		break;
-		}
-	case OP_SAM_MATE_UNMAPPED:
-		{
-		s_retbool(( c->flag & BAM_FMUNMAP));
-		break;
-		}
-	case OP_SAM_READ_REVERSE_STRAND:
-		{
-		s_retbool(( c->flag & BAM_FREVERSE));
-		break;
-		}
-	case OP_SAM_MATE_REVERSE_STRAND:
-		{
-		s_retbool(( c->flag & BAM_FMREVERSE));
+		pointer head = sc->NIL;
+		uint8_t* s = bam_get_aux(b); /* aux */
+		uint8_t* end = b->data + b->l_data;
+		 while (end - s >= 4) {
+		 	
+        		uint8_t type;
+        		char att_id[3];
+        		pointer p_attribute_id;
+        		pointer p_attribute_type;
+        		pointer p_attribute_val;
+        		pointer p_attribute;
+        		
+			att_id[0]=s[0];
+			att_id[1]=s[1];
+			att_id[2]=0;
+			p_attribute_id = mk_string(sc,att_id);
+			s+=2;
+			type = *s;
+			
+			++s;
+
+#define MAKE_ATTRIBUTE p_attribute =cons(sc, p_attribute_id, cons(sc , p_attribute_type , cons(sc,p_attribute_val,sc->NIL) ))
+
+			switch(type)
+				{
+				case 'A':
+					{
+					p_attribute_type = mk_character(sc,type);
+					p_attribute_val  = mk_character(sc,*s);
+					 ++s;
+					MAKE_ATTRIBUTE;
+					break;
+					}
+#define CASE_INT_TYPE1(OPCODE,TYPE) case OPCODE: {\
+	TYPE v;\
+	p_attribute_type = mk_character(sc,'I');\
+	memcpy((void*)&v,(void*)s,sizeof(TYPE));\
+	p_attribute_val  = mk_integer(sc,(long)v);\
+	s+=sizeof(TYPE);\
+	MAKE_ATTRIBUTE;\
+	break;\
+	}
+
+#define CASE_INT_TYPE2(OPCODE,TYPE,MODIFIER) case OPCODE: {\
+	TYPE v;\
+	p_attribute_type = mk_character(sc,'I');\
+	v = (TYPE) MODIFIER(s);\
+	p_attribute_val  = mk_integer(sc,(long)v);\
+	s+=sizeof(TYPE);\
+	MAKE_ATTRIBUTE;\
+	break;\
+	}
+				CASE_INT_TYPE1('c',int8_t)
+				CASE_INT_TYPE1('C',uint8_t)
+				CASE_INT_TYPE2('s',int16_t, le_to_i16)
+				CASE_INT_TYPE2('S',uint16_t,le_to_u16)
+				CASE_INT_TYPE2('i',int32_t, le_to_i32)
+				CASE_INT_TYPE2('I',uint32_t,le_to_u32)
+#undef CASE_INT_TYPE1
+#undef CASE_INT_TYPE2
+				case 'f':
+					{
+					p_attribute_type = mk_character(sc,type);
+					p_attribute_val  = mk_real(sc,(double)le_to_float(s));
+					s+= sizeof(float);
+					MAKE_ATTRIBUTE;
+					break;
+					}
+				case 'd':
+					{
+					p_attribute_type = mk_character(sc,type);
+					p_attribute_val  = mk_real(sc,(double)le_to_double(s));
+					s+= sizeof(double);
+					MAKE_ATTRIBUTE;
+					break;
+					}
+				case 'Z':
+				case 'H':
+					{
+					kstring_t str = { 0, 0, NULL };
+					p_attribute_type = mk_character(sc,type);
+					while (s < end && *s!='\0') kputc(*s++, &str);
+					p_attribute_val  = mk_string(sc,str.s);
+					free(str.s);
+					++s;
+					MAKE_ATTRIBUTE;
+					break;
+					}
+				case 'B':
+					{
+					pointer p_array_item;
+					pointer array_content = sc->NIL;
+					
+					p_attribute_type = mk_character(sc,type);
+					p_attribute_val = sc->NIL;
+					
+					
+					uint8_t sub_type = *(s++);
+					pointer p_attribute_subtype = mk_character(sc,sub_type);
+					uint32_t n = le_to_u32(s);
+					uint32_t i=n;
+					s += 4;
+
+						
+#define CASE_INT_TYPE1(OP,TYPE) case OP:{\
+TYPE* array=(TYPE*)s;\
+while(i>0) {\
+	pointer array_item = mk_integer(sc,(long)array[i-1]);\
+	array_content = cons(sc , array_content ,array_item );\
+	i--;\
+	};\
+s+= n*sizeof(TYPE);\
+break;\
+}
+
+
+#define CASE_INT_TYPE2(OP,TYPE,MODIFIER) case OP:{\
+TYPE* array=(TYPE*)s;\
+while(i>0) {\
+	TYPE v = (TYPE) MODIFIER(s);\
+	pointer array_item = mk_integer(sc,(long)array[i-1]);\
+	array_content = cons(sc , array_content ,array_item );\
+	i--;\
+	};\
+s+= n*sizeof(TYPE);\
+break;\
+}
+					switch(sub_type)
+						{
+						CASE_INT_TYPE1('C',uint8_t)
+						CASE_INT_TYPE2('s',int16_t, le_to_i16)
+						CASE_INT_TYPE2('S',uint16_t,le_to_u16)
+						CASE_INT_TYPE2('i',int32_t, le_to_i32)
+						CASE_INT_TYPE2('I',uint32_t,le_to_u32)
+						case 'f':
+							{
+							break;
+							}
+						case 'd':
+							{
+							break;
+							}
+						default:
+							{
+							fprintf(stderr,"bad sam attribute array type %c.",type);
+							exit(EXIT_FAILURE);
+							break;
+							}
+						}
+					//p_array_item  cons(sc , p_array_item ,p_attribute_val )
+#undef CASE_INT_TYPE1
+#undef CASE_INT_TYPE2					 
+					
+					p_attribute_val = cons(sc , p_array_item ,p_attribute_val );
+					break;
+					}
+				default: 
+					{
+					fprintf(stderr,"bad sam attribute type %c.",type);
+					exit(EXIT_FAILURE);
+					break;
+					}
+				}
+			
+			
+		    	head = cons(sc , p_attribute ,head );
+			}
+		s_return(sc, head);
 		break;
 		}
 	default: 
@@ -5528,6 +5689,20 @@ int main(int argc, char **argv) {
 
 #define tinyscheme_list3(sc , a , b , c) cons((sc) , (a) , cons((sc) , (b) , cons((sc) , (c) , (sc)->NIL)))
 #define tinyscheme_list2(sc , a , b ) cons((sc) , (a) , cons((sc) , (b) , (sc)->NIL))
+
+static pointer make_list(scheme *sc,int n, pointer p)
+	{
+	pointer head= sc->NIL;
+	va_list args;
+    	va_start(args, p);
+	while (n > 0) {
+         pointer curr = va_arg(args, pointer);
+         head = cons(sc,head,curr);
+         --n;
+         }
+        va_end(args);
+        return head;
+	}
 
 static pointer mk_bam1(scheme *sc, bam_hdr_t *header,bam1_t *b)
 	{
