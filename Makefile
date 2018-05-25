@@ -75,6 +75,7 @@ OBJS = $(addsuffix .$(Osuf),$(APPNAME) dynload init_scm_str)
 
 LIBTARGET = $(addsuffix .$(SOsuf),$(LIBPREFIX)tiny$(APPNAME))
 STATICLIBTARGET = $(addsuffix .$(LIBsuf),$(LIBPREFIX)tiny$(APPNAME))
+TESTBAM=../jvarkit-git/src/test/resources/S1.bam
 
 .PHONY: all clean test test-extended
 
@@ -83,25 +84,27 @@ all: test $(LIBTARGET) $(STATICLIBTARGET)
 test : test-bam
 
 test-bam: $(addsuffix $(EXE_EXT),$(APPNAME))
-	$(EXEC_APP) -e '(define (accept-read) #f)'  ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -e '(define (accept-read x) (string=? (sam-read-contig x) "RF11"))' ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -e '(define (accept-read x) (= (sam-read-tid x) 2))' ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -e '(define (accept-read x) (string=? (sam-read-name x) "RF03_2096_2588_0:1:0_1:0:0_86"))' ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -e '(define (accept-read x) (= (sam-flag x) 83))' ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -e "(define (accept-read x) (= (sam-flag x) 83))" ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -e '(define (accept-read x) (= (sam-mapq x) 60))' ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (and (sam-has-cigar? x) (string=? (sam-cigar-string x) "62M8S")))') ../jvarkit-git/src/test/resources/S1.bam|  head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (string=? (sam-read-qual x) "2222222222222222222222222222222222222222222222222222222222222222222222"))') ../jvarkit-git/src/test/resources/S1.bam|  head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (string=? (sam-read-seq x) "AAGTCGCAATGCAATTGTTCGAAGATTTGTAGGTCTAACCTGTGAGGTCACTAGGGAGCTCCCCACTCCC"))') ../jvarkit-git/src/test/resources/S1.bam|  head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-has-flag? x 16))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (< (car (car (sam-cigar-list x ))) 70) )') ../jvarkit-git/src/test/resources/S1.bam |  head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-proper-pair? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-paired? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-read-unmapped? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-read-reverse-strand? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-mate-reverse-strand? x ))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -f <(echo '(define (accept-read x) (string=? (sam-rg-id x ) "S1"))') ../jvarkit-git/src/test/resources/S1.bam | head -n 20
-	$(EXEC_APP) -e '(define (accept-read x) (> (length (sam-attributes x )) 2))' ../jvarkit-git/src/test/resources/S1.bam | head -n 20
+	$(EXEC_APP) -e '(define (accept-read) #f)'  $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (string=? (sam-read-contig x) "RF11"))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (= (sam-read-tid x) 2))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (string=? (sam-read-name x) "RF03_2096_2588_0:1:0_1:0:0_86"))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (= (sam-flag x) 83))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e "(define (accept-read x) (= (sam-flag x) 83))" $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (= (sam-mapq x) 60))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (and (sam-has-cigar? x) (string=? (sam-cigar-string x) "62M8S")))') $(TESTBAM)|  head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (string=? (sam-read-qual x) "2222222222222222222222222222222222222222222222222222222222222222222222"))') $(TESTBAM)|  head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (string=? (sam-read-seq x) "AAGTCGCAATGCAATTGTTCGAAGATTTGTAGGTCTAACCTGTGAGGTCACTAGGGAGCTCCCCACTCCC"))' $(TESTBAM)|  head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-has-flag? x 16))') $(TESTBAM) | head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (< (car (car (sam-cigar-list x ))) 70) )') $(TESTBAM) |  head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-proper-pair? x ))') $(TESTBAM) | head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-paired? x ))') $(TESTBAM) | head -n 20
+	$(EXEC_APP) -f <(echo '(define (accept-read x) (sam-read-unmapped? x ))') $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (sam-read-reverse-strand? x ))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (sam-mate-reverse-strand? x ))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (string=? (sam-rg-id x ) "S1"))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read x) (> (length (sam-attributes x )) 2))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read r) (> (list-ref (sam-get-attribute r "NM") 2 ) 5 ))' $(TESTBAM) | head -n 20
+	$(EXEC_APP) -e '(define (accept-read r) (sam-has-attribute? r "xx"))' $(TESTBAM) | head -n 20
 
 test-extended: $(addsuffix $(EXE_EXT),$(APPNAME))
 	echo '(display "AAA\n")' | $(EXEC_APP)  | grep AAA
@@ -125,13 +128,13 @@ $(addsuffix $(EXE_EXT),scheme) : $(OBJS)
 $(STATICLIBTARGET): $(OBJS)
 	$(AR) $@ $(OBJS)
 
-$(OBJS): scheme.h scheme-private.h opdefines.h sam_scm.h
+$(OBJS): scheme.h scheme-private.h opdefines.h opdefines-hts.h opdefines-extended.h sam_scm.h
 $(addsuffix $(Osuf),dynload): dynload.h
 
 
 init_scm_str.c : init.scm
 	echo 'const char* init_scm_str = "" ' > $@
-	grep -v '^;' $< | sed -e 's/^[ \t]*/ /' | grep -v '^[ ]*$$'| sed -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/"/'  >> $@
+	cat $< |sed -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/\\n"/'  >> $@
 	echo '"";' >> $@
 
 
