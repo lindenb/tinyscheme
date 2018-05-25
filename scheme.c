@@ -4561,6 +4561,95 @@ static pointer opexe_ext(scheme *sc, enum scheme_opcodes op) {
 #define MAKE_LIST4(a,b,c,d) CONS(a,MAKE_LIST3(b,c,d))
 #define MAKE_LIST5(a,b,c,d,e) CONS(a,MAKE_LIST4(b,c,d,e)))
 
+inline int cigar_operator_consummes_read(char cop)
+	{
+	switch(cop)
+	 	{
+	 	case 'M': case '=' : case 'X': case 'I': case 'S': return 1;
+	 	case 'D':case 'N': case 'H': case 'P': return 0;
+	 	default:fprintf(stderr,"Bad cigar operator '%c'.\n",cop); return 0;
+	 	}
+	}
+
+inline int cigar_operator_consummes_ref(char cop)
+	{
+	switch(cop)
+	 	{
+	 	case 'M': case '=' : case 'X': case 'D': case 'N': return 1;
+	 	case 'P': case 'I': case 'S': case 'H': return 0;
+	 	default:fprintf(stderr,"Bad cigar operator '%c'.\n",cop); return 0;
+	 	}
+	}
+
+inline int cigar_operator_is_clipping(char cop)
+	{
+	return (cop=='S' || cop=='H');
+	}
+
+inline int cigar_operator_is_deletion(char cop)
+	{
+	return (cop=='D' || cop=='N');
+	}
+
+inline int cigar_operator_is_matching(char cop)
+	{
+	return (cop=='M' || cop=='=' || cop == 'X');
+	}
+
+inline int cigar_operator_is_indel(char cop)
+	{
+	return (cigar_operator_is_deletion(cop) || cop=='I');
+	}
+
+static int cigar_has_operator(bam1_t *b,int (*filter)(char) ) {
+	uint32_t *cigar = bam_get_cigar(b);
+	bam1_core_t *c = &b->core;
+ 	int i = 0;
+ 	if (c->tid < 0 || c->n_cigar==0) return 0;
+ 	for (i =0; i<  (int)(c->n_cigar);++i) {
+ 		char cop = (char)bam_cigar_opchr(cigar[i]);
+ 		if(filter(cop)) return 1; 
+ 		}
+ 	return 0;
+	}
+
+static int cigar_reference_length(bam1_t *b) {
+	uint32_t *cigar = bam_get_cigar(b);
+	bam1_core_t *c = &b->core;
+ 	int i = 0;
+ 	int length = 0;
+ 	if (c->tid < 0 || c->n_cigar==0) return 0;
+	for (i =0; i<  (int)(c->n_cigar);++i) {
+	    switch ((char)bam_cigar_opchr(cigar[i])) {
+                case 'M':
+                case 'D':
+                case 'N':
+                case '=':
+                case 'X':
+                    length += (int)bam_cigar_oplen(cigar[i]);
+                    break;
+                default: break;
+            	}
+            }
+	return length;
+	}
+
+/*  The number of read bases that the read covers. */
+static int cigar_read_length(bam1_t *b) {
+	uint32_t *cigar = bam_get_cigar(b);
+	bam1_core_t *c = &b->core;
+ 	int i = 0;
+ 	int length = 0;
+ 	if (c->tid < 0 || c->n_cigar==0) return 0;
+	for (i =0; i<  (int)(c->n_cigar);++i) {
+	   char op = (char)bam_cigar_opchr(cigar[i]);
+	    if( cigar_operator_consummes_read(op) )
+                    length += (int)bam_cigar_oplen(cigar[i]);
+            }
+	return length;
+	}
+
+
 
 static pointer opexe_cigar(scheme *sc, enum scheme_opcodes op) {
 	pointer p_op = car(sc->args);
@@ -4580,25 +4669,13 @@ static pointer opexe_cigar(scheme *sc, enum scheme_opcodes op) {
 	switch (op) {
 	case OP_CIGAROP_CONSUMMES_READ:
 	     	 {
-	     	 int ret=0;
-	     	 switch(cop)
-	     	 	{
-	     	 	case 'M': case '=' : case 'X': case 'I': case 'S': ret=1; break;
-	     	 	case 'D':case 'N': case 'H': case 'P': ret=0;break;
-	     	 	default:fprintf(stderr,"Bad cigar operator '%c'.\n",cop);
-	     	 	}
-	     	 s_retbool(ret);
+	     	 s_retbool(cigar_operator_consummes_read(cop));
+	     	 break;
 	     	 }
 	case OP_CIGAROP_CONSUMMES_REF:
 	     	 {
-	     	 int ret=0;
-	     	 switch(cop)
-	     	 	{
-	     	 	case 'M': case '=' : case 'X': case 'D': case 'N': ret=1; break;
-	     	 	case 'P': case 'I': case 'S': case 'H': ret=0;break;
-	     	 	default:fprintf(stderr,"Bad cigar operator '%c'.\n",cop);
-	     	 	}
-	     	 s_retbool(ret);
+	     	 s_retbool(cigar_operator_consummes_ref(cop));
+	     	 break;
 	     	 }
 	default: {
           snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal extended operator", sc->op);
@@ -4708,8 +4785,7 @@ static pointer opexe_sam(scheme *sc, enum scheme_opcodes op) {
 		{
 		int i;
 		pointer head = sc->NIL;
-		
-	     	
+	     
 	     	if (c->tid < 0 || c->n_cigar==0) return head;
 	     	
 	     	uint32_t *cigar = bam_get_cigar(b);

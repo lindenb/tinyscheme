@@ -717,7 +717,7 @@
 
 ;; 
 ;;
-;; SAM things
+;; Utilities
 ;;
 (define (is-non-empty-list? lst) (> (length lst) 0))
 
@@ -727,6 +727,32 @@
          (cons (car lst) (filter-list (cdr lst) predicate)))
         (else (filter-list  (cdr lst) predicate ))))
 
+
+(define (list-sum elemList)
+  (if
+    (null? elemList)
+    0
+    (+ (car elemList) (list-sum (cdr elemList)))
+  )
+)
+
+;;
+;;
+;; Cigar-things
+;;
+(define (cigar-map-operators cigar oplst) (map (lambda (element) #f) cigar) )
+
+;; The number of reference bases that the read covers, excluding padding
+(define (cigar-reference-length cigar)
+	(list-sum (map 
+		(lambda (element) (car element) ) 
+		(cigar-map-operators cigar (list #\M #\D #\N #\= #\X ))
+	))
+	)
+;; 
+;;
+;; SAM things
+;;
 (define (sam-get-attribute rec attName) 
 	(let (
 		(lst (sam-attributes rec))
@@ -741,20 +767,6 @@
 	);; end of define
 
 (define (sam-has-attribute? rec attName) 
-	(let (
-		(lst (sam-attributes rec))
-		(pred (lambda (cigarElt) (string=? (car cigarElt) attName) ) )
-	     );; end of let variable
-	     (let ( 
-	     (filtered (filter-list lst pred))
-	     ) (if (is-non-empty-list? filtered) #t  #f  )
-	     )
-	 ;; return value
-	);; end of let
-	);; end of define
+	(is-non-empty-list?  (sam-get-attribute rec attName) )
+	)
 
-;(define (sam-get-attribute rec attName)
-;	(let ((found (filter-list  (sam-attributes rec) (lambda (att) (string=? (car att) attName))) )
-;      (cond ((null? found) null )
-;          ((car found)))
-;)
